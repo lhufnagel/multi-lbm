@@ -1,0 +1,5 @@
+http://wiki.palabos.org/numerics:matlab_samples
+http://exolete.com/lbm/
+http://www.mathworks.com/matlabcentral/fileexchange/6904-basic-lattice-boltzmann--lb--matlab-code
+http://www.mathworks.com/matlabcentral/fileexchange/40607-lattice-boltzmann-immiscible-two-phase-model--lbm-
+http://www.mathworks.com/matlabcentral/fileexchange/49565-lattice-boltzmann-n-phase-model-with-mrt-and-enhanced-equilibrium--lbm-
