@@ -1,5 +1,5 @@
 classdef celltype
    enumeration
-      Regular, NorthSolid, EastSolid, SouthSolid, WestSolid
+      Regular, NorthMovSolid, EastSolid, SouthSolid, WestSolid
    end
 end

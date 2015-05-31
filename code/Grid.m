@@ -1,4 +1,4 @@
-classdef grid
+classdef Grid
   properties
     dx
     dt
@@ -6,6 +6,7 @@ classdef grid
     ny
     omega
     c_s
+    lidVel
     cells
 
     % D2Q9; Indexing:
@@ -21,7 +22,6 @@ classdef grid
     %   ^
     % y |__>
     %     x
-
 
     weights = [ 4/9,   1/9,   1/36,  1/9,   1/36,   1/9,    1/36,    1/9,    1/36];
     c       = [[0;0], [0;1], [1;1], [1;0], [1;-1], [-1;0], [-1;-1], [-1;0], [-1;1]];
