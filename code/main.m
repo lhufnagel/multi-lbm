@@ -4,12 +4,12 @@
 t_end = 5; % [s]
 x_len = 1; % [m]
 y_len = 1; % [m]
-lidVel = 0.1; % [m/s]
-visc  = 1e-1;% [m^2/s]
+lidVel = 0.2; % [m/s]
+visc  = 1e-2;% [m^2/s]
 
 g=Grid;
 g.dx=0.05; % [m]
-g.dt=0.001; % [s]
+g.dt=0.01; % [s]
 g.c_s=sqrt(1/3); % [m/s]
 g.lidVel = [lidVel*g.dt/g.dx; 0];
 g.omega = 1/(visc/(g.c_s^2*g.dt) + 1/2);
@@ -24,7 +24,7 @@ for x=1:g.nx
 
     g.cells(x,y).type = celltype.Regular;
     g.cells(x,y).pdfs = g.weights;
-    %g.cells(x,y).pdfs_new = g.weights;
+    g.cells(x,y).pdfs_new = g.weights;
 
     if (x == 1)
       g.cells(x,y).type = celltype.WestSolid;
@@ -74,8 +74,10 @@ for t=1:(t_end/g.dt)
   end
 
   disp(t)
-  figure(1);
-  quiver(velField_u',velField_v');
-  figure(2);
-  contourf(densField')
+  if (mod(t,2)==0)
+    figure(1);
+    quiver(velField_u',velField_v');
+    figure(2);
+    contourf(densField')
+  end
 end

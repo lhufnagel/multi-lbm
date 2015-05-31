@@ -22,23 +22,12 @@ classdef Cell < handle
       end
 
       for i=1:9
-        %g.cells(x + g.c(1,i), y + g.c(2,i)).pdfs_new(i) = obj.pdfs(i);
-        tmp = g.cells(x + g.c(1,i), y + g.c(2,i));
-        tmp.pdfs_new(i) = obj.pdfs(i);
-        g.cells(x + g.c(1,i), y + g.c(2,i))=tmp;
+        g.cells(x + g.c(1,i), y + g.c(2,i)).pdfs_new(i) = obj.pdfs(i);
       end
     end
 
     function boundaryHandling(obj, g, x, y)
       switch (obj.type)
-        case celltype.SouthSolid
-          g.cells(x  , y+1).pdfs_new(2) = obj.pdfs_new(6);
-          if (x<g.nx)
-            g.cells(x+1, y+1).pdfs_new(3) = obj.pdfs_new(7);
-          end
-          if (x>1)
-            g.cells(x-1, y+1).pdfs_new(9) = obj.pdfs_new(5);
-          end
         case celltype.EastSolid
           g.cells(x-1, y  ).pdfs_new(8) = obj.pdfs_new(4);
           g.cells(x-1, y-1).pdfs_new(7) = obj.pdfs_new(3);
@@ -47,13 +36,21 @@ classdef Cell < handle
           g.cells(x+1, y  ).pdfs_new(4) = obj.pdfs_new(8);
           g.cells(x+1, y-1).pdfs_new(5) = obj.pdfs_new(9);
           g.cells(x+1, y+1).pdfs_new(3) = obj.pdfs_new(7);
-        case celltype.NorthMovSolid
-          g.cells(x  , y-1).pdfs_new(6) = obj.pdfs_new(2) - 2/(g.c_s^2) * g.weights(6) * g.c(:,6)'*g.lidVel;
+        case celltype.SouthSolid
+          g.cells(x  , y+1).pdfs_new(2) = obj.pdfs_new(6);
           if (x<g.nx)
-            g.cells(x+1, y-1).pdfs_new(5) = obj.pdfs_new(9) - 2/(g.c_s^2) * g.weights(5) * g.c(:,5)'*g.lidVel;
+            g.cells(x+1, y+1).pdfs_new(3) = obj.pdfs_new(7);
           end
           if (x>1)
-            g.cells(x-1, y-1).pdfs_new(7) = obj.pdfs_new(3) - 2/(g.c_s^2) * g.weights(7) * g.c(:,7)'*g.lidVel;
+            g.cells(x-1, y+1).pdfs_new(9) = obj.pdfs_new(5);
+          end
+        case celltype.NorthMovSolid
+          g.cells(x  , y-1).pdfs_new(6) = obj.pdfs_new(2) - 2/(g.c_s^2) * g.weights(2) * g.c(:,2)'*g.lidVel;
+          if (x<g.nx)
+            g.cells(x+1, y-1).pdfs_new(5) = obj.pdfs_new(9) - 2/(g.c_s^2) * g.weights(9) * g.c(:,9)'*g.lidVel;
+          end
+          if (x>1)
+            g.cells(x-1, y-1).pdfs_new(7) = obj.pdfs_new(3) - 2/(g.c_s^2) * g.weights(3) * g.c(:,3)'*g.lidVel;
           end
       end
     end
