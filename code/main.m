@@ -1,11 +1,11 @@
 %Lid driven cavity on [0,x_len] x [0, y_len] for t in [0, t_end], top lid has velocity lidVel in x-Direction
-%D2Q9 LBM, BGK, Stream-Collide. SiWiR-2 Insipred ;)
+%D2Q9 LBM, BGK, Stream-Collide. SiWiR-2 Inspired ;)
 
 t_end = 5; % [s]
 x_len = 1; % [m]
 y_len = 1; % [m]
-lidVel = 0.2; % [m/s]
-visc  = 1e-2;% [m^2/s]
+lidVel = 0.3; % [m/s]
+visc  = 1e-3;% [m^2/s]
 
 g=Grid;
 g.dx=0.05; % [m]
@@ -24,7 +24,6 @@ for x=1:g.nx
 
     g.cells(x,y).type = celltype.Regular;
     g.cells(x,y).pdfs = g.weights;
-    g.cells(x,y).pdfs_new = g.weights;
 
     if (x == 1)
       g.cells(x,y).type = celltype.WestSolid;
