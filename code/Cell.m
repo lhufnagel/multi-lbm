@@ -57,10 +57,10 @@ classdef Cell < handle
 
     function [rho, vel] = collide(obj, g)
       %Macroscopic measures [LU]
-      rho = 1.;
       vel = [0; 0];
 
       if (obj.type ~= celltype.Regular)
+        rho = 1.;
         return;
       end
 

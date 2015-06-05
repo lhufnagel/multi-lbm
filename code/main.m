@@ -28,25 +28,25 @@ for x=1:g.nx
     if (x == 1)
       g.cells(x,y).type = celltype.WestSolid;
     end
-
     if (x == g.nx)
-      g.cells(x,y).type = celltype.EastSolid;
+      g.cells(x,y).type = celltype.EastSolid;    
     end
-
     if (y == 1)
       g.cells(x,y).type = celltype.SouthSolid;
     end
-
     if (y == g.ny)
       g.cells(x,y).type = celltype.NorthMovSolid;
     end
-
+    
   end
 end
 
 densField = ones(g.nx,g.ny);
 velField_u = zeros(g.nx,g.ny);
 velField_v = zeros(g.nx,g.ny);
+
+fig = figure(1);
+set(fig,'Position', [0 0 800 300]);
 
 %go for it
 for t=1:(t_end/g.dt)
@@ -72,11 +72,12 @@ for t=1:(t_end/g.dt)
     end
   end
 
-  disp(t)
+  fprintf('Steps: %d \tDone: %d\n',(t_end/g.dt),t)
   if (mod(t,2)==0)
     figure(1);
+    subplot(1,2,1);
     quiver(velField_u',velField_v');
-    figure(2);
+    subplot(1,2,2);
     contourf(densField')
   end
 end
