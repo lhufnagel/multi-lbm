@@ -32,14 +32,26 @@ classdef Cell < handle
           g.cells(x-1, y  ).pdfs_new(8) = obj.pdfs_new(4);
           g.cells(x-1, y-1).pdfs_new(7) = obj.pdfs_new(3);
           g.cells(x-1, y+1).pdfs_new(9) = obj.pdfs_new(5);
+        case celltype.EastPeriodic
+          g.cells(2, y).pdfs_new(3)     = obj.pdfs_new(3);
+          g.cells(2, y).pdfs_new(4)     = obj.pdfs_new(4);
+          g.cells(2, y).pdfs_new(5)     = obj.pdfs_new(5);
         case celltype.WestSolid
           g.cells(x+1, y  ).pdfs_new(4) = obj.pdfs_new(8);
           g.cells(x+1, y-1).pdfs_new(5) = obj.pdfs_new(9);
           g.cells(x+1, y+1).pdfs_new(3) = obj.pdfs_new(7);
+        case celltype.WestPeriodic
+          g.cells(g.nx-1, y).pdfs_new(7) = obj.pdfs_new(7);
+          g.cells(g.nx-1, y).pdfs_new(8) = obj.pdfs_new(8);
+          g.cells(g.nx-1, y).pdfs_new(9) = obj.pdfs_new(9);
         case celltype.SouthSolid
           g.cells(x  , y+1).pdfs_new(2) = obj.pdfs_new(6);
           if (x<g.nx)
-            g.cells(x+1, y+1).pdfs_new(3) = obj.pdfs_new(7);
+            %if (g.cells(x,y+1).type == celltype.WestPeriodic)
+              %g.cells(x+1, y+1).pdfs_new(3) = g.cells(g.nx, y).pdfs_new(7);
+            %else
+              g.cells(x+1, y+1).pdfs_new(3) = obj.pdfs_new(7);
+            %end
           end
           if (x>1)
             g.cells(x-1, y+1).pdfs_new(9) = obj.pdfs_new(5);
