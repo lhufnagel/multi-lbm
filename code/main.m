@@ -9,7 +9,7 @@ visc  = 1e-3;% [m^2/s]
 
 g=Grid;
 g.dx=0.05; % [m]
-g.dt=0.01; % [s]
+g.dt=0.05; % [s]
 g.c_s=sqrt(1/3); % [m/s]
 g.lidVel = [lidVel*g.dt/g.dx; 0];
 g.omega = 1/(visc/(g.c_s^2*g.dt) + 1/2);
@@ -57,13 +57,13 @@ for t=1:(t_end/g.dt)
     end
   end
 
-  for y=1:g.ny
-      g.cells(1, y).boundaryHandling(g, 1, y);
-      g.cells(g.nx, y).boundaryHandling(g, g.nx, y);
-  end
   for x=1:g.nx
       g.cells(x, 1).boundaryHandling(g, x, 1);
       g.cells(x, g.ny).boundaryHandling(g, x, g.ny);
+  end
+  for y=1:g.ny
+      g.cells(1, y).boundaryHandling(g, 1, y);
+      g.cells(g.nx, y).boundaryHandling(g, g.nx, y);
   end
 
 
@@ -80,7 +80,7 @@ for t=1:(t_end/g.dt)
   end
 
   fprintf('Steps: %d \tDone: %d\n',(t_end/g.dt),t)
-  if (mod(t,2)==0)
+  if (mod(t,5)==0)
     figure(1);
     subplot(1,2,1);
     quiver(velField_u',velField_v');
