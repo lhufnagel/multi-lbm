@@ -4,12 +4,12 @@
 t_end = 5; % [s]
 x_len = 1; % [m]
 y_len = 1; % [m]
-lidVel = 0.3; % [m/s]
-visc  = 1e-3;% [m^2/s]
+lidVel = 50; % [m/s]
+visc  = 1e-6;% [m^2/s]
 
 g=Grid;
-g.dx=0.05; % [m]
-g.dt=0.05; % [s]
+g.dx=0.1; % [m]
+g.dt=0.00005; % [s]
 g.c_s=sqrt(1/3); % [m/s]
 g.lidVel = [lidVel*g.dt/g.dx; 0];
 g.omega = 1/(visc/(g.c_s^2*g.dt) + 1/2);
