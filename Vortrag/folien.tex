@@ -1,4 +1,5 @@
 \documentclass[ucs]{beamer}
+\usepackage{etex}
 
 %\usepackage[ngerman]{babel}
 %\usepackage[latin1]{inputenc}
@@ -124,11 +125,34 @@ Interface properties (curvature, normal) are obtained from discrete level-set fu
 
 \begin{frame}
 \frametitle{Mathematic foundation}
+\framesubtitle{Level Set}
+\begin{itemize}
+\item<1-> The level set equation of Osher and Sethian
+ $$\varphi_t+v \cdot \nabla \varphi = 0$$
+\item<2-> with the level set function $\varphi$
+\item<3-> we will use the signed distance function as level set function and therefore we get
+$$n = \nabla \varphi$$
+$$\kappa = \nabla \varphi$$
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Mathematic foundation}
 \framesubtitle{Interface capturing}
 Hydrodynamics are solved by LBM.
 
 <Coupling und BC's erklären!!\ldots>
 \end{frame}
+
+\begin{frame}
+\frametitle{Mathematic foundation}
+\framesubtitle{Coupling of LBM and level set method}
+\begin{itemize}
+\item<1-> New boundary condition at the interface
+$$f_i(x,t+1) = f_{i^*}^{+}(x,t) + 6hf_{i}^{*}c_i \cdot \tilde{u} + R_i$$
+\end{itemize}
+\end{frame}
+
 
 \section{Results}
 \begin{frame}
