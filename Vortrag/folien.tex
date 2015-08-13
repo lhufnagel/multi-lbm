@@ -110,8 +110,20 @@ The interface between fluid phases is captured by a Level-Set Method.
 
 I.e. a \textit{level set function} $\phi:= \phi(x,t) \rightarrow \mathbb{R}$ is tracked through the fluid domain. The interface is given by the zero-isosurface of this function.
 It holds:
-$$ \frac{\partial \phi}{\partial t} + \vec v \cdot \nabla \phi = 0.$$
+$$ \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0.$$
 %todo benefits erklaeren
+\end{frame}
+
+\begin{frame}
+\frametitle{Mathematic foundation}
+\framesubtitle{Level Set}
+\begin{itemize}
+\item<1-> The level set equation of Osher and Sethian
+ $$\varphi_t+ \vec v \cdot \nabla \varphi = 0$$
+\item<2-> we will use the signed distance function as level set function and therefore we get
+$$n = \nabla \varphi$$
+$$\kappa = \nabla \varphi$$
+\end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -125,34 +137,26 @@ Interface properties (curvature, normal) are obtained from discrete level-set fu
 
 \begin{frame}
 \frametitle{Mathematic foundation}
-\framesubtitle{Level Set}
-\begin{itemize}
-\item<1-> The level set equation of Osher and Sethian
- $$\varphi_t+v \cdot \nabla \varphi = 0$$
-\item<2-> with the level set function $\varphi$
-\item<3-> we will use the signed distance function as level set function and therefore we get
-$$n = \nabla \varphi$$
-$$\kappa = \nabla \varphi$$
-\end{itemize}
-\end{frame}
-
-\begin{frame}
-\frametitle{Mathematic foundation}
 \framesubtitle{Interface capturing}
 Hydrodynamics are solved by LBM.
-
+\begin{itemize}
+\item<1-> Interface becomes a new boundary condition for LBM
+$$f_i(x,t+1) = f_{i^*}^{+}(x,t) + 6hf_{i}^{*}c_i \cdot \tilde{u} + R_i$$
+\end{itemize}
 <Coupling und BC's erklären!!\ldots>
 \end{frame}
 
 \begin{frame}
 \frametitle{Mathematic foundation}
-\framesubtitle{Coupling of LBM and level set method}
+\framesubtitle{Algorithm for LBM with level set}
 \begin{itemize}
-\item<1-> New boundary condition at the interface
-$$f_i(x,t+1) = f_{i^*}^{+}(x,t) + 6hf_{i}^{*}c_i \cdot \tilde{u} + R_i$$
+\item<1-> Create initial interface
+\item<2-> Run level set method to calculate surface description
+\item<3-> Run LBM for a prescribed number of steps
+\item<4-> Run level set method for the same number of steps
+\item<5-> Repeat till end of simulation
 \end{itemize}
 \end{frame}
-
 
 \section{Results}
 \begin{frame}
