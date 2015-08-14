@@ -25,8 +25,32 @@ end
 
 g.type([1:g.nx], [1:g.ny]) = celltype.Regular;
 
+% TODO: set up levelset
+%
+% ...
+
+% TODO: run levelset one time to get the interface conditions
+%
+% ...
+
 %go for it
-for t=1:(t_end/g.dt)
+
+% TODO: 1. Insert outer for-loop that includes LBM-loop and levelset-lop.
+% TODO: 2. Shorten execution time of LBM-loop (only a few steps for each
+% iteration).
+
+% for overall_time=1:overall_time_end   % Begin outer loop
+
+    % TODO: pass data from levelset to LBM
+    %
+    % ...
+
+for t=1:(t_end/g.dt)    % Start LBM
+    
+  %lbm
+  % stream
+  % boundary handling
+  % collide
 
   %stream
   for i=1:9 
@@ -71,6 +95,10 @@ for t=1:(t_end/g.dt)
     %  g.cells_new(g.nx-1, y,7) = g.cells_new(1,y,7);
     %end
   end
+  
+  % TODO: include "level-set-boundary"
+  %
+  % ...
 
 
   %collide
@@ -92,7 +120,8 @@ for t=1:(t_end/g.dt)
           1/(2*g.c_s^4) .* (cTimesU(:,:)).^2 - ...
           1/(2*g.c_s^2) .* (vel(:,:,1).^2 + vel(:,:,2).^2)));
   end
-
+  
+  % some output about the progress
   fprintf('Steps: %d \tDone: %d\n',(t_end/g.dt),t)
 
   %plot
@@ -108,4 +137,15 @@ for t=1:(t_end/g.dt)
     contourf(rho([2:g.nx-1],[2:g.ny-1])')
     colorbar;
   end
-end
+  
+end     % End LBM
+
+    % TODO: pass data from LBM to levelset
+    %
+    % ...
+
+    % TODO: run levelset
+    % 
+    % ...
+
+% end % End outer for-loop
