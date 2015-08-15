@@ -25,25 +25,25 @@ end
 
 g.type([1:g.nx], [1:g.ny]) = celltype.Regular;
 
-% TODO: set up levelset
-%
-% ...
-
-% TODO: run levelset one time to get the interface conditions
-%
-% ...
+% Set up levelset
+% wird in der Funktion LevelSet gemacht
+lsAcc = 'low';
+% run levelset one time to get the interface conditions
+% TODO: Gridgröße von level set an LBM anpassen
+data = LevelSet(lsAcc);
 
 %go for it
 
-% TODO: 1. Insert outer for-loop that includes LBM-loop and levelset-lop.
-% TODO: 2. Shorten execution time of LBM-loop (only a few steps for each
-% iteration).
+% TODO: Shorten execution time of LBM & level set (only few steps)
 
-% for overall_time=1:overall_time_end   % Begin outer loop
+overall_time_end = 1;
+for overall_time=1:overall_time_end   % Begin outer loop
 
     % TODO: pass data from levelset to LBM
     %
     % ...
+    celltype_grid = dataToCelltype(data);
+    % celltype auf LBM-Grid übertragen
 
 for t=1:(t_end/g.dt)    % Start LBM
     
@@ -148,4 +148,4 @@ end     % End LBM
     % 
     % ...
 
-% end % End outer for-loop
+end % End outer for-loop
