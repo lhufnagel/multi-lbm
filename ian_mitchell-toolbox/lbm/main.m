@@ -194,7 +194,9 @@ end
 tNow = t0;
 startTime = cputime;
 while(tMax - tNow > small * tMax)
-  %lbm loop
+  %% Pass Data from level set to LBM
+  celltype = dataToCelltype(data);
+  %% LBM loop
   for t=1:lbm_it
     %lbm stream
     for i=1:9 
@@ -239,6 +241,23 @@ while(tMax - tNow > small * tMax)
         lbm_g.cells_new(lbm_g.nx-1, y,7) = lbm_g.cells_new(1,y,7);
       end
     end
+    
+    %boundary handling for the interface (Walls are neglected!!)
+    for x=1:lbm_g.nx-1-3
+        for y = 1:lbm_g.ny-1-3
+            if celltype(x+1,y+1) == 0
+                % implementation as no-slip boundary
+                lbm_g.cells_new(x  ,y+1,6) = lbm_g.cells_new(x,y,2);
+                lbm_g.cells_new(x+1,y+1,7) = lbm_g.cells_new(x,y,3);
+                lbm_g.cells_new(x+1,y  ,8) = lbm_g.cells_new(x,y,4);
+                lbm_g.cells_new(x+1,y-1,9) = lbm_g.cells_new(x,y,5);
+                lbm_g.cells_new(x  ,y-1,2) = lbm_g.cells_new(x,y,6);
+                lbm_g.cells_new(x-1,y-1,3) = lbm_g.cells_new(x,y,7);
+                lbm_g.cells_new(x-1,y  ,4) = lbm_g.cells_new(x,y,8);
+                lbm_g.cells_new(x-1,y+1,5) = lbm_g.cells_new(x,y,9);
+            end
+        end
+    end
 
     %lbm collide
     rho = zeros(lbm_g.nx,lbm_g.ny);
@@ -261,6 +280,7 @@ while(tMax - tNow > small * tMax)
     end
   end
 
+  % LBM plot
   figure(2);
   % subplot(1,2,1);
   quiver(vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1)',...
@@ -269,6 +289,8 @@ while(tMax - tNow > small * tMax)
   % contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
   % colorbar;
 
+  %% level set code
+  
   % Reshape data array into column vector for ode solver call.
   y0 = data(:);
 
