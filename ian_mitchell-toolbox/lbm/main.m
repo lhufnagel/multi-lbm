@@ -242,43 +242,58 @@ while(tMax - tNow > small * tMax)
       end
     end
     
-    %boundary handling for the interface (walls are neglected!!)
+    %boundary handling for the interface
+    % es wird die Geschwindigkeit am Interface benötigt. Hier wird aktuell
+    % einfach der Mittelwert der beiden Zellen genommen, dies ist nicht
+    % komplett richtig, soll aber als erste Approximation genügen
+    vel = zeros(lbm_g.nx,lbm_g.ny,2);
+    for i=1:9
+      vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells_new(:,:,i);
+      vel(:,:,2) = vel(:,:,2) + lbm_g.c(2,i) * lbm_g.cells_new(:,:,i);
+    end
     for x=1:lbm_g.nx-1-3
         for y = 1:lbm_g.ny-1-3
-%             if celltype(x+1,y+1) == 0
-%                 % implementation as no-slip boundary
-%                 lbm_g.cells_new(x  ,y+1,6) = lbm_g.cells_new(x,y,2);
-%                 lbm_g.cells_new(x+1,y+1,7) = lbm_g.cells_new(x,y,3);
-%                 lbm_g.cells_new(x+1,y  ,8) = lbm_g.cells_new(x,y,4);
-%                 lbm_g.cells_new(x+1,y-1,9) = lbm_g.cells_new(x,y,5);
-%                 lbm_g.cells_new(x  ,y-1,2) = lbm_g.cells_new(x,y,6);
-%                 lbm_g.cells_new(x-1,y-1,3) = lbm_g.cells_new(x,y,7);
-%                 lbm_g.cells_new(x-1,y  ,4) = lbm_g.cells_new(x,y,8);
-%                 lbm_g.cells_new(x-1,y+1,5) = lbm_g.cells_new(x,y,9);
-%             end
-              if celltype(x+1,y+1) ~= celltype(x+1  ,y+1+1)
-                  lbm_g.cells_new(x  ,y+1,6) = lbm_g.cells_new(x,y,2);
+              i = x+1;
+              j = y+1;
+              if celltype(i,j) ~= celltype(i  ,j+1)
+                  vel_int = [(vel(x,y,1)+vel(x  ,y+1,1)) ; (vel(x,y,2)+vel(x  ,y+1,2))]*0.5;
+                  add_term = 6*lbm_g.dx*vel_int'*lbm_g.c(:,2);
+                  lbm_g.cells_new(x  ,y+1,6) = lbm_g.cells_new(x,y,2) + add_term;
               end
-              if celltype(x+1,y+1) ~= celltype(x+1+1,y+1+1)
-                  lbm_g.cells_new(x+1,y+1,7) = lbm_g.cells_new(x,y,3);
+              if celltype(i,j) ~= celltype(i+1,j+1)
+                  vel_int = [(vel(x,y,1)+vel(x+1,y+1,1)) ; (vel(x,y,2)+vel(x+1,y+1,2))]*0.5;
+                  add_term = 6*lbm_g.dx*vel_int'*lbm_g.c(:,3);
+                  lbm_g.cells_new(x+1,y+1,7) = lbm_g.cells_new(x,y,3) + add_term;
               end
-              if celltype(x+1,y+1) ~= celltype(x+1+1,y+1  )
-                  lbm_g.cells_new(x+1,y  ,8) = lbm_g.cells_new(x,y,4);
+              if celltype(i,j) ~= celltype(i+1,j  )
+                  vel_int = [(vel(x,y,1)+vel(x+1,y  ,1)) ; (vel(x,y,2)+vel(x+1,y  ,2))]*0.5;
+                  add_term = 6*lbm_g.dx*vel_int'*lbm_g.c(:,4);
+                  lbm_g.cells_new(x+1,y  ,8) = lbm_g.cells_new(x,y,4) + add_term;
               end
-              if celltype(x+1,y+1) ~= celltype(x+1+1,y+1-1)
-                  lbm_g.cells_new(x+1,y-1,9) = lbm_g.cells_new(x,y,5);
+              if celltype(i,j) ~= celltype(i+1,j-1)
+                  vel_int = [(vel(x,y,1)+vel(x+1,y-1,1)) ; (vel(x,y,2)+vel(x+1,y-1,2))]*0.5;
+                  add_term = 6*lbm_g.dx*vel_int'*lbm_g.c(:,5);
+                  lbm_g.cells_new(x+1,y-1,9) = lbm_g.cells_new(x,y,5) + add_term;
               end
-              if celltype(x+1,y+1) ~= celltype(x+1  ,y+1-1)
-                  lbm_g.cells_new(x  ,y-1,2) = lbm_g.cells_new(x,y,6);
+              if celltype(i,j) ~= celltype(i  ,j-1)
+                  vel_int = [(vel(x,y,1)+vel(x  ,y-1,1)) ; (vel(x,y,2)+vel(x  ,y-1,2))]*0.5;
+                  add_term = 6*lbm_g.dx*vel_int'*lbm_g.c(:,6);
+                  lbm_g.cells_new(x  ,y-1,2) = lbm_g.cells_new(x,y,6) + add_term;
               end
-              if celltype(x+1,y+1) ~= celltype(x+1-1,y+1-1)
-                  lbm_g.cells_new(x-1,y-1,3) = lbm_g.cells_new(x,y,7);
+              if celltype(i,j) ~= celltype(i-1,j-1)
+                  vel_int = [(vel(x,y,1)+vel(x-1,y-1,1)) ; (vel(x,y,2)+vel(x-1,y-1,2))]*0.5;
+                  add_term = 6*lbm_g.dx*vel_int'*lbm_g.c(:,7);
+                  lbm_g.cells_new(x-1,y-1,3) = lbm_g.cells_new(x,y,7) + add_term;
               end
-              if celltype(x+1,y+1) ~= celltype(x+1-1,y+1  )
-                  lbm_g.cells_new(x-1,y  ,4) = lbm_g.cells_new(x,y,8);
+              if celltype(i,j) ~= celltype(i-1,j  )
+                  vel_int = [(vel(x,y,1)+vel(x-1,y  ,1)) ; (vel(x,y,2)+vel(x-1,y  ,2))]*0.5;
+                  add_term = 6*lbm_g.dx*vel_int'*lbm_g.c(:,8);
+                  lbm_g.cells_new(x-1,y  ,4) = lbm_g.cells_new(x,y,8) + add_term;
               end
-              if celltype(x+1,y+1) ~= celltype(x+1-1,y+1+1)
-                  lbm_g.cells_new(x-1,y+1,5) = lbm_g.cells_new(x,y,9);
+              if celltype(i,j) ~= celltype(i-1,j+1)
+                  vel_int = [(vel(x,y,1)+vel(x-1,y+1,1)) ; (vel(x,y,2)+vel(x-1,y+1,2))]*0.5;
+                  add_term = 6*lbm_g.dx*vel_int'*lbm_g.c(:,9);
+                  lbm_g.cells_new(x-1,y+1,5) = lbm_g.cells_new(x,y,9) + add_term;
               end
         end
     end
