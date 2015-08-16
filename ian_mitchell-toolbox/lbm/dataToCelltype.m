@@ -26,48 +26,50 @@ for i = 1:size_data(1)
     end
 end
 
-% interface
-for i = 2:size_data(1)-1
-    for j = 2:size_data(2)-1
-        %type_sum = sum(sum(type_buf(i-1:i+1,j-1:j+1)));
-        
-        positive = 0;
-        negative = 0;
+type = type_buf;
 
-        for l = 1:4
-            env_i = type_buf(i+env(l,1),j+env(l,2));
-            if env_i == 1
-                positive = positive + 1;
-            elseif env_i == -1
-                negative = negative +1;
-            end
-        end
-
-        if positive > 0 && negative > 0
-            type(i,j) = 0;
-        else
-            type(i,j) = type_buf(i,j);
-        end
-    end
-
-end
-
-% Die Ränder
-for i = 2:size_data(1) - 1
-    % North
-    if (type(1,i+1)+type(1,i-1)) == 0
-        type(1,j) = 0;
-    end
-    % West
-    if (type(i+1,1)+type(i-1,1)) == 0
-        type(j,1) = 0;
-    end
-    % Sout
-    if (type(i+1,size_data(1))+type(i-1,size_data(1))) == 0
-        type(j,size_data(1)) = 0;
-    end
-    % East
-    if (type(size_data(1),i+1)+type(size_data(1),i-1)) == 0
-        type(size_data(1),j) = 0;
-    end
-end
+% % interface
+% for i = 2:size_data(1)-1
+%     for j = 2:size_data(2)-1
+%         %type_sum = sum(sum(type_buf(i-1:i+1,j-1:j+1)));
+%         
+%         positive = 0;
+%         negative = 0;
+% 
+%         for l = 1:4
+%             env_i = type_buf(i+env(l,1),j+env(l,2));
+%             if env_i == 1
+%                 positive = positive + 1;
+%             elseif env_i == -1
+%                 negative = negative +1;
+%             end
+%         end
+% 
+%         if positive > 0 && negative > 0
+%             type(i,j) = 0;
+%         else
+%             type(i,j) = type_buf(i,j);
+%         end
+%     end
+% 
+% end
+% 
+% % Die Ränder
+% for i = 2:size_data(1) - 1
+%     % North
+%     if (type(1,i+1)+type(1,i-1)) == 0
+%         type(1,j) = 0;
+%     end
+%     % West
+%     if (type(i+1,1)+type(i-1,1)) == 0
+%         type(j,1) = 0;
+%     end
+%     % Sout
+%     if (type(i+1,size_data(1))+type(i-1,size_data(1))) == 0
+%         type(j,size_data(1)) = 0;
+%     end
+%     % East
+%     if (type(size_data(1),i+1)+type(size_data(1),i-1)) == 0
+%         type(size_data(1),j) = 0;
+%     end
+% end
