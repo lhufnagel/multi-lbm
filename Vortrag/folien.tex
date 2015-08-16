@@ -110,29 +110,8 @@ The interface between fluid phases is captured by a Level-Set Method.
 
 I.e. a \textit{level set function} $\phi:= \phi(x,t) \rightarrow \mathbb{R}$ is tracked through the fluid domain. The interface is given by the zero-isosurface of this function.
 It holds:
-$$ \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0.$$
+$$ \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0$$
 %todo benefits erklaeren
-\end{frame}
-
-\begin{frame}
-\frametitle{Mathematic foundation}
-\framesubtitle{Level Set}
-\begin{itemize}
-\item<1-> The level set equation of Osher and Sethian
- $$\varphi_t+ \vec v \cdot \nabla \varphi = 0$$
-\item<2-> we will use the signed distance function as level set function and therefore we get
-$$n = \nabla \varphi$$
-$$\kappa = \nabla \varphi$$
-\end{itemize}
-\end{frame}
-
-\begin{frame}
-\frametitle{Mathematic foundation}
-\framesubtitle{Interface capturing}
-Level-Set function only stored in narrow band around interface, Adalsteinsson and Sethian
-TODO: Quellen als Footnotes + Uebersichtsfolie
-
-Interface properties (curvature, normal) are obtained from discrete level-set function by weighted least-squares method.
 \end{frame}
 
 \begin{frame}
@@ -142,7 +121,10 @@ Hydrodynamics are solved by LBM.
 \begin{itemize}
 \item<1-> Interface becomes a new boundary condition for LBM
 $$f_i(x,t+1) = f_{i^*}^{+}(x,t) + 6hf_{i}^{*}c_i \cdot \tilde{u} + R_i$$
+\item<2-> $\tilde{u}$ is the velocity on the interface along the direction $c_i$
+\item<3-> $R_i$ ensures the jump conditions of the normal stress and corrects the error terms resulting from the bounce back treatment
 \end{itemize}
+TODO: Bild vom Interface
 <Coupling und BC's erklären!!\ldots>
 \end{frame}
 
@@ -172,8 +154,11 @@ $\rightarrow$ \dots
 \vspace{.8cm}
 Outlook:
 \begin{itemize}
-\item<1-> Include thermal flow (simulate e.g. lava lamp)
-\item<2-> \dots
+\item<1-> Add correction term to prevent mass loss
+\item<1-> Reduce computational effort: Store Level-Set function only in narrow band around interface, Adalsteinsson and Sethian
+TODO: Quellen als Footnotes + Uebersichtsfolie
+\item<2-> Include thermal flow (simulate e.g. lava lamp) / Include gravity
+\item<3-> \dots
 \end{itemize}
 
 \end{frame}
