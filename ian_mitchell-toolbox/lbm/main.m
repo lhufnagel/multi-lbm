@@ -273,19 +273,47 @@ while(tMax - tNow > small * tMax)
                     vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
                     add_term1 = 6*lbm_g.dx*lbm_g.weights(k)*vel_int'*lbm_g.c(:,k); % 6 h f^*_i c_i
                     %% S^(k)
-                    grad_vel = zeros(2);   % S^(k)
+                    % Bei der Vergabe der Indizes habe ich mich an das Paper gehalten
+                    % 2: Der Punkt den wir betrachten
+                    % 1: Der Punkt im anderen Fluid
+                    S_2 = zeros(2);   % S^(2)
+                    S_1 = zeros(2);   % S^(1)
                     for l = 1:9     % langsam gehen mir die Buchstaben aus...
-                        diff_f_i = diff_f(x,y,l);
-                        grad_vel = grad_vel + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_i;
+                        diff_f_2 = diff_f(x,y,l);
+                        diff_f_1 = diff_f(x+lbm_g.c(1,k),y+lbm_g.c(2,k),l);
+                        S_2 = S_2 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_2;
+                        S_1 = S_1 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_1;
                     end
-                    grad_vel = -1.5 * lbm_g.omega * (1/lbm_g.dx^2) * grad_vel;
-                    %% [S]
-                    jump_vel = zeros(2);   % [S]
-                    
-                    %% add_term2
+                    S_2 = -1.5 * lbm_g.omega * (1/lbm_g.dx^2) * S_2;
+                    S_1 = -1.5 * lbm_g.omega * (1/lbm_g.dx^2) * S_1;
+                    %% Lambda_i
                     Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/3.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
-                    A = -q*(1-q)*jump_vel - (q-0.5)*grad_vel;  % Teilergebnis zur Berechnung von R_i
-                    add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*trace(Lambda_i*A');  % R_i    with A:B = trace(A*B')
+                    %% [S] = jump_S
+                    S_average = (S_1 + S_2)*0.5;
+                    S_jump = zeros(2);   % [S]
+                    % Wir brauchen Normale n und Tangente t
+                    normal = [0;0];     %fehlt
+                    tang = [0;0];       %fehlt
+                    mu_1 = 1;           %fehlt
+                    mu_2 = 1;           %fehlt
+                    mu_average = 0.5*(mu_1 + mu_2);
+                    mu_jump = 0;        %fehlt
+                    p_jump = 0;         %fehlt    % Auf S. 1147 beschrieben
+                    sigma = 0;          %fehlt
+                    kappa = 0;          %fehlt    % curvature
+                    
+                    
+                    % Zwischenergebnisse
+                    S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal')');
+                    S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tang')');
+                    
+                    Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (norm(lbm_g.c(:,k))^2)/3) + ...
+                        2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tang'*lbm_g.c(:,k));
+                    Lambda_times_S_2 = trace(Lambda_i*S_2');
+                    
+                    %% add_term2 = R_i
+                    Lambda_times_A = -q*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
+                    add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
                     
                     %% do it
                     if k <= 5
