@@ -288,27 +288,35 @@ while(tMax - tNow > small * tMax)
                     S_1 = -1.5 * lbm_g.omega * (1/lbm_g.dx^2) * S_1;
                     %% Lambda_i
                     Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/3.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
-                    %% [S] = jump_S
+                    %% Lambda_i : [S] 
                     S_average = (S_1 + S_2)*0.5;
-                    S_jump = zeros(2);   % [S]
-                    % Wir brauchen Normale n und Tangente t
-                    normal = [0;0];     %fehlt
-                    tang = [0;0];       %fehlt
-                    mu_1 = 1;           %fehlt
-                    mu_2 = 1;           %fehlt
-                    mu_average = 0.5*(mu_1 + mu_2);
-                    mu_jump = 0;        %fehlt
-                    p_jump = 0;         %fehlt    % Auf S. 1147 beschrieben
-                    sigma = 0;          %fehlt
+                    % Normale, Tangente und Krümmung können als erster
+                    % Ansatz über finite Differenzen bestimmt werden
+                    normal = [0;0];     %fehlt    % normal n
+                    tangent = [0;0];    %fehlt    % tangent t
                     kappa = 0;          %fehlt    % curvature
+                    
+                    % mu = mass_dens * v
+                    mu_2 = norm([vel(x,y,1) ; vel(x,y,2)]);
+                    mu_1 = norm([vel(x+lbm_g.c(1,k),y+lbm_g.c(1,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(1,k),2)]);
+                    mu_average = 0.5*(mu_1 + mu_2);
+                    mu_jump = mu_1 - mu_2;        % <-- kommt von mir, würde ich nicht unbedingt darauf vertrauen
+                    
+                    p_jump = 1/(3*lbm_g.dx^2) *(rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) - rho(x,y));    % Auf S. 1147 beschrieben
+                    % In der Formel steckt noch die Massendichte. Diese
+                    % habe ich vorerst außer acht gelassen.
+                    
+                    sigma = 0;          % surface tension (bei uns tatsächlich 0, da wir noch keine zwei verschiedenen Fluide haben)
                     
                     
                     % Zwischenergebnisse
                     S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal')');
-                    S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tang')');
+                    S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
                     
                     Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (norm(lbm_g.c(:,k))^2)/3) + ...
-                        2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tang'*lbm_g.c(:,k));
+                        2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tangent'*lbm_g.c(:,k));
+                    
+                    %% Lambda_i : S^(2)
                     Lambda_times_S_2 = trace(Lambda_i*S_2');
                     
                     %% add_term2 = R_i
