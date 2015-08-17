@@ -67,7 +67,7 @@ $$
 $$
 \frac{\partial \vec v}{\partial t} + \left(\vec  v \cdot \nabla \right) \vec v
 =
--\frac{1}{\rho_i}\nabla p + \nu_i \nabla^2 \vec v $$
+-\frac{1}{\varrho_i}\nabla p + \nu_i \nabla^2 \vec v $$
 }
 \end{frame}
 
@@ -99,8 +99,17 @@ $$
 \end{itemize}
 \vspace{-.5cm}
 \visible<2->{
-  where $\textbf{T}_i$ is the stress tensor $\textbf{T}_i=2\nu_i \rho_i \textbf{S}_i -p \textbf{Id}$ and $\kappa$ is the curvature of the interface $\nabla \cdot \vec n$. $\textbf{S} = \frac{1}{2}(\partial_{x_i} v_j+\partial_{x_j}  v_i)$
+  where $\textbf{T}_i$ is the stress tensor $\textbf{T}_i=2\nu_i \rho_i \textbf{S}_i -p \textbf{Id}$ and $\kappa$ is the curvature of the interface $\nabla \cdot \vec n$. $\textbf{S}_{ij} = \frac{1}{2}(\partial_{i} v_j+\partial_{j}  v_i)$
 }
+\end{frame}
+
+\begin{frame}
+To solve the two-phase problem we need to:
+\begin{itemize}
+\item<1-> solve the flow equations $\rightarrow$ LBM
+\item<2-> compute the motion of the interface $\rightarrow$ level set
+\item<3-> couple the two algorithms
+\end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -108,7 +117,7 @@ $$
 \framesubtitle{Interface capturing}
 The interface between fluid phases is captured by a Level-Set Method.
 
-I.e. a \textit{level set function} $\phi:= \phi(x,t) \rightarrow \mathbb{R}$ is tracked through the fluid domain. The interface is given by the zero-isosurface of this function.
+I.e. a \textit{level set function} $\varphi:= \varphi(x,t) \rightarrow \mathbb{R}$ is tracked through the fluid domain. The interface is given by the zero-isosurface of this function.
 It holds:
 $$ \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0$$
 %todo benefits erklaeren
@@ -126,6 +135,20 @@ $$f_i(x,t+1) = f_{i^*}^{+}(x,t) + 6hf_{i}^{*}c_i \cdot \tilde{u} + R_i$$
 \end{itemize}
 TODO: Bild vom Interface
 <Coupling und BC's erklären!!\ldots>
+\end{frame}
+
+\begin{frame}
+$\tilde{u}$ is calculated by linear interpolation:
+$$\tilde{u} = q u (x_2,t) + (1-q) u(x_1,t)$$
+$R_i$ consists of several parts:
+$$R_i = 6 h^2 f_{i}^{*} {\Lambda}_i : A$$
+\begin{itemize}
+\item<1-> with:
+$$ {\Lambda}_i = c_i \otimes c_i - \frac13 {|c_i|}^2 \mathbb{I}$$
+$$ A = -q(1-q)[S] - (q - 1/2) S^{2} + O(h)$$
+\item<2-> $S^{(k)}$ velocity gradient at $x_k$
+\item<3-> $[S]$ jump of velocity gradient at the interface. Depends on normal, tangent and curvature.
+\end{itemize}
 \end{frame}
 
 \begin{frame}
