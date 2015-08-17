@@ -243,27 +243,57 @@ while(tMax - tNow > small * tMax)
     end
     
     %boundary handling for the interface
-    % es wird die Geschwindigkeit am Interface benötigt. Hier wird aktuell
-    % einfach der Mittelwert der beiden Zellen genommen, dies ist nicht
-    % komplett richtig, soll aber als erste Approximation genügen.
-    % (Eigentlich wird eine Gewichtung entsprechend der levelset-Werte
-    % benötigt)
+    % calculation of diff_f = f - f_eq
+    rho = zeros(lbm_g.nx,lbm_g.ny);
     vel = zeros(lbm_g.nx,lbm_g.ny,2);
     for i=1:9
+      rho(:,:) = rho(:,:) + lbm_g.cells_new(:,:,i);
       vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells_new(:,:,i);
       vel(:,:,2) = vel(:,:,2) + lbm_g.c(2,i) * lbm_g.cells_new(:,:,i);
     end
+    diff_f = zeros(lbm_g.nx,lbm_g.ny,9);
+    for i = 1:9
+        cTimesU = lbm_g.c(1,i) * vel(:,:,1) + lbm_g.c(2,i) * vel(:,:,2);
+        diff_f(:,:,i) = lbm_g.cells_new(:,:,i) - ...
+                    lbm_g.weights(i) .* (rho(:,:) + ...
+                    1/(lbm_g.c_s^2) .* cTimesU(:,:) + ...
+                    1/(2*lbm_g.c_s^4) .* (cTimesU(:,:)).^2 - ...
+                    1/(2*lbm_g.c_s^2) .* (vel(:,:,1).^2 + vel(:,:,2).^2));
+    end
+    
     for x=1:lbm_g.nx-1-3
         for y = 1:lbm_g.ny-1-3
               for k = 2:9
                   if celltype(x+1,y+1) ~= celltype(x+1+lbm_g.c(1,k),y+1+lbm_g.c(2,k))
-                    vel_int = [(vel(x,y,1)+vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1)) ; (vel(x,y,2)+vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2))]*0.5;
-                    add_term = 6*lbm_g.dx*lbm_g.weights(k)*vel_int'*lbm_g.c(:,k);
-                    if k <= 5
-                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k+4) = lbm_g.cells_new(x,y,k) + add_term;  
-                    else
-                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k-4) = lbm_g.cells_new(x,y,k) + add_term;  
+                    %% q
+                    q = 0.5;    % muss eigentlich aus level set berechnet werden
+                    % pitfall: q und (1-q) müssen immer dem gleichen x zugeordnet werden
+                    
+                    %% add_term1
+                    vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
+                    add_term1 = 6*lbm_g.dx*lbm_g.weights(k)*vel_int'*lbm_g.c(:,k); % 6 h f^*_i c_i
+                    %% S^(k)
+                    grad_vel = zeros(2);   % S^(k)
+                    for l = 1:9     % langsam gehen mir die Buchstaben aus...
+                        diff_f_i = diff_f(x,y,l);
+                        grad_vel = grad_vel + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_i;
                     end
+                    grad_vel = -1.5 * lbm_g.omega * (1/lbm_g.dx^2) * grad_vel;
+                    %% [S]
+                    jump_vel = zeros(2);   % [S]
+                    
+                    %% add_term2
+                    Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/3.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
+                    A = -q*(1-q)*jump_vel - (q-0.5)*grad_vel;  % Teilergebnis zur Berechnung von R_i
+                    add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*trace(Lambda_i*A');  % R_i    with A:B = trace(A*B')
+                    
+                    %% do it
+                    if k <= 5
+                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k+4) = lbm_g.cells_new(x,y,k) + add_term1 + add_term2;  
+                    else
+                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k-4) = lbm_g.cells_new(x,y,k) + add_term1 + add_term2;  
+                    end
+                    
                   end
               end
         end
