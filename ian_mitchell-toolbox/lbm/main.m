@@ -261,6 +261,15 @@ while(tMax - tNow > small * tMax)
                     1/(2*lbm_g.c_s^2) .* (vel(:,:,1).^2 + vel(:,:,2).^2));
     end
     
+    % get first order derivative
+    deriv = zeros(lbm_g.nx-2,lbm_g.ny-2,2);
+    [derivL,derivR] = upwindFirstENO3(g,data,1);
+    deriv(:,:,1) = 0.5 * (derivL + derivR);
+    [derivL,derivR] = upwindFirstENO3(g,data,2);
+    deriv(:,:,2) = 0.5 * (derivL + derivR);
+    
+    [curvature, ~] = curvatureSecond(g, data);
+    
     for x=1:lbm_g.nx-1-3
         for y = 1:lbm_g.ny-1-3
               for k = 2:9
@@ -292,9 +301,10 @@ while(tMax - tNow > small * tMax)
                     S_average = (S_1 + S_2)*0.5;
                     % Normale, Tangente und Krümmung können als erster
                     % Ansatz über finite Differenzen bestimmt werden
-                    normal = [0;0];     %fehlt    % normal n
-                    tangent = [0;0];    %fehlt    % tangent t
-                    kappa = 0;          %fehlt    % curvature
+                    normal = [deriv(x+1,y+1,1);deriv(x+1,y+1,2)];
+                    normal = normal/norm(normal);        % normal n
+                    tangent = [-normal(2);normal(1)];    % tangent t
+                    kappa = curvature(x+1,y+1);          % curvature
                     
                     % mu = mass_dens * v
                     mu_2 = norm([vel(x,y,1) ; vel(x,y,2)]);
