@@ -43,11 +43,11 @@
 \section{Motivation \& Introduction}
 
 \begin{frame}
-\frametitle{Multiphase flow - Examples}
+\frametitle{Multiphase flow}
+Examples
 \begin{itemize}
-\item<1-> Examples
-\item<2-> e.g. Oil in water 
-\item<3-> \ldots
+\item<1-> Liquid-liquid mixtures (e.g. oil in water) 
+\item<2-> Gas-liquid mixtures (e.g. bubble dynamics)
 \end{itemize}
 \end{frame}
 
@@ -133,22 +133,27 @@ $$f_i(x,t+1) = f_{i^*}^{+}(x,t) + 6hf_{i}^{*}c_i \cdot \tilde{u} + R_i$$
 \item<2-> $\tilde{u}$ is the velocity on the interface along the direction $c_i$
 \item<3-> $R_i$ ensures the jump conditions of the normal stress and corrects the error terms resulting from the bounce back treatment
 \end{itemize}
-TODO: Bild vom Interface
-<Coupling und BC's erklären!!\ldots>
+TODO: Bild vom Interface (sowas wie Fig.1-Right im Paper)
 \end{frame}
 
 \begin{frame}
+\visible<1->{
 $\tilde{u}$ is calculated by linear interpolation:
 $$\tilde{u} = q u (x_2,t) + (1-q) u(x_1,t)$$
+}
+\visible<2->{
 $R_i$ consists of several parts:
 $$R_i = 6 h^2 f_{i}^{*} {\Lambda}_i : A$$
+}
+\visible<3->{
 \begin{itemize}
-\item<1-> with:
+\item<3-> with:
 $$ {\Lambda}_i = c_i \otimes c_i - \frac13 {|c_i|}^2 \mathbb{I}$$
 $$ A = -q(1-q)[S] - (q - 1/2) S^{2} + O(h)$$
-\item<2-> $S^{(k)}$ velocity gradient at $x_k$
-\item<3-> $[S]$ jump of velocity gradient at the interface. Depends on normal, tangent and curvature.
+\item<4-> $S^{(k)}$ velocity gradient at $x_k$
+\item<5-> $[S]$ jump of velocity gradient at the interface. Depends on normal, tangent and curvature.
 \end{itemize}
+}
 \end{frame}
 
 \begin{frame}
@@ -166,22 +171,22 @@ $$ A = -q(1-q)[S] - (q - 1/2) S^{2} + O(h)$$
 \section{Results}
 \begin{frame}
 \frametitle{Validation}
+TODO: Hier könnte man Bilder von unserer ersten Simulation zeigen. Leider können wir die Richtigkeit bisher nicht mit Zahlen belegen.
 \framesubtitle{Validation setups}
 \end{frame}
 
 \section{Outlook}
 \begin{frame}
-\frametitle{Conclusion \& Outlook}
-$\rightarrow$ \dots
+\frametitle{Outlook}
+$\rightarrow$ \textit{Conclusion habe ich rausgenommen. Ich wüsste zumindest nicht was wir da reinschreiben könnten. Wenn du was weißt, darfst du das aber sehr gerne wieder einfügen.}
 
-\vspace{.8cm}
+\vspace{.8cm} 
 Outlook:
 \begin{itemize}
 \item<1-> Add correction term to prevent mass loss
-\item<1-> Reduce computational effort: Store Level-Set function only in narrow band around interface, Adalsteinsson and Sethian
+\item<2-> Reduce computational effort: Store Level-Set function only in narrow band around interface, Adalsteinsson and Sethian
 TODO: Quellen als Footnotes + Uebersichtsfolie
-\item<2-> Include thermal flow (simulate e.g. lava lamp) / Include gravity
-\item<3-> \dots
+\item<3-> Include thermal flow (simulate e.g. lava lamp) / Include gravity
 \end{itemize}
 
 \end{frame}
@@ -191,6 +196,8 @@ TODO: Quellen als Footnotes + Uebersichtsfolie
 \begin{thebibliography}{etw}
    \bibitem{thoemmes}
      Thömmes, Guido, et al. "A lattice Boltzmann method for immiscible multiphase flow simulations using the level set method." Journal of Computational Physics 228.4 (2009): 1139-1156
+   \bibitem{mitchell}
+     Mitchell, Ian, A Toolbox of Level Set Methods
 \end{thebibliography}
 \end{frame}
 
