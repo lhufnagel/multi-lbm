@@ -12,5 +12,5 @@
 
 % Proper operation of function handles seems to require an absolute path
 %   (at least for Matlab version 6.5).
-addpath(genpath('C:\Users\Public\Documents\Studium\Master\BGCE\Projekt\multi-lbm\ian_mitchell-toolbox\Kernel'));
+addpath(genpath('/Users/lorenzhufnagel/Desktop/uni/BGCE_Proj/multi-lbm/ian_mitchell-toolbox/Kernel'));
 
