@@ -81,12 +81,13 @@ Examples
 \end{itemize}
 \visible<3->{
 $$
-\nabla \cdot  \vec v = 0
+\nabla \cdot  \vec v_i = 0 \text{  in } \Omega_i
 $$
 $$
-\frac{\partial \vec v}{\partial t} + \left(\vec  v \cdot \nabla \right) \vec v
+\frac{\partial \vec v_i}{\partial t} + \left(\vec  v _i\cdot \nabla \right) \vec v_i
 =
--\frac{1}{\varrho_i}\nabla p + \nu_i \nabla^2 \vec v $$
+-\frac{1}{\varrho_i}\nabla p_i + \nu_i \nabla^2 \vec v_i \text{  in } \Omega_i
+$$
 }
 \end{frame}
 
@@ -188,7 +189,7 @@ $$R_i = 6 \Delta x^2 f_{i}^{*} {\Lambda}_i : A$$
 \begin{itemize}
 \item<3-> with:
 $$ {\Lambda}_i = c_i \otimes c_i - \frac13 {|c_i|}^2 \mathbb{I}$$
-$$ A = -q(1-q)[S] - (q - 1/2) S^{2} + O(\Delta x)$$
+$$ A = -q(1-q)[S] - (q - 1/2) S^{2}$$
 \item<4-> $S^{(k)}$ velocity gradient at $x_k$
 \item<5-> $[S] = \lim_{\epsilon \to 0}(S(x+\epsilon \vec n) -S(x-\epsilon \vec n))$ jump of velocity gradient at the interface. Depends on normal, tangent and curvature.
 \end{itemize}
@@ -272,9 +273,9 @@ Transient couette flow with immersed drop.
 \vspace{.8cm} 
 Outlook:
 \begin{itemize}
-\item<1-> Add correction term to prevent mass loss
-\item<2-> Reduce computational effort: Store Level-Set function only in narrow band around interface, Adalsteinsson and Sethian
-\item<3-> $\rightarrow$ \dots ?
+\item<1-> Create more examples
+\item<2-> Add correction term to prevent mass loss
+\item<3-> Reduce computational effort: Store Level-Set function only in narrow band around interface, Adalsteinsson and Sethian
 %TODO: Quellen als Footnotes + Uebersichtsfolie
 %\item<3-> Include thermal flow (simulate e.g. lava lamp) / Include gravity
 \end{itemize}
