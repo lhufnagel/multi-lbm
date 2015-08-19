@@ -68,8 +68,6 @@ Examples
 }
 \end{minipage}
 \end{tabular}
-
-
 \end{frame}
 
 \section{Mathematic foundation}
@@ -142,7 +140,7 @@ The interface between fluid phases is captured by a Level-Set Method.
 I.e. a \textit{level set function} $\varphi:= \varphi(x,t) \rightarrow \mathbb{R}$ is tracked through the fluid domain. The interface is given (implicitly) by the zero-isosurface of this function.
 It holds:
 $$ \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0$$
-where $\vec v$ is the velocity at the interface, given by NSE.
+where $\vec v$ is the velocity at the interface; given by NSE.
 
 Benefit of Level-Set Method:
 \begin{itemize}
@@ -154,22 +152,22 @@ Benefit of Level-Set Method:
 \begin{frame}
 \frametitle{Mathematic foundation}
 \framesubtitle{Interface implementation (Methods Coupling)}
-Hydrodynamics are solved by LBM (D2Q9, SRT for our first test)
+Hydrodynamics are solved by LBM (Stream-Collide, D2Q9, SRT for our first test)
 \begin{itemize}
 \item<1-> Interface becomes a new boundary condition for LBM
-$$f_i(x,t+1) = f_{i^*}^{+}(x,t) + 6 \Delta x f_{i}^{*}c_i \cdot \tilde{v} + R_i$$
-\item<2-> $\tilde{v}$ is the velocity on the interface along the direction $c_i$
+  $$f_i(x,t+1) = f_{i^*}^{+}(x,t) + 6 \Delta x f_{i}^{*}c_i \cdot \tilde{v} + R_i$$
 \end{itemize}
 \begin{tabular}{l l}
-\hspace{-.35cm} \begin{minipage}{0.6\textwidth}
+\hspace{-.35cm} \begin{minipage}{0.65\textwidth}
 \visible<1->{
 \begin{itemize}
+\item<2-> $\tilde{v}$ is the velocity on the interface along the direction $c_i$
 \item<3-> $R_i$ ensures the jump conditions of the normal stress and corrects the error terms resulting from the bounce back treatment
 \end{itemize}
 }
 \end{minipage}
 &
-\begin{minipage}{0.4\textwidth}
+\hspace{-.5cm} \begin{minipage}{0.4\textwidth}
 \begin{figure}[h!]
 \includegraphics[width=3cm]{skizze2.png}
 \end{figure}
@@ -204,30 +202,81 @@ $$ A = -q(1-q)[S] - (q - 1/2) S^{2} + O(\Delta x)$$
 \item<1-> Create initial interface
 \item<2-> Run level set method to calculate surface description
 \item<3-> Run LBM for a prescribed number of steps
-\item<4-> Run level set method for the same number of steps
-\item<5-> Repeat till end of simulation
+\item<4-> Run level set method for the same time interval
+\item<5-> Repeat until end of simulation
 \end{itemize}
 \end{frame}
 
 \section{Results}
 \begin{frame}
-\frametitle{Validation}
-TODO: Hier könnte man Bilder von unserer ersten Simulation zeigen. Leider können wir die Richtigkeit bisher nicht mit Zahlen belegen.
-\framesubtitle{Validation setups}
+\frametitle{Results}
+\framesubtitle{Setup}
+Transient couette flow with immersed drop.
+\begin{tabular}{l l}
+\begin{minipage}{0.5\textwidth}
+
+\begin{figure}[h!]
+\includegraphics[width=7cm]{plots/vel0.png}
+\end{figure}
+\end{minipage}
+&
+\begin{minipage}{0.5\textwidth}
+\begin{figure}[h!]
+  \includegraphics[width=4cm]{plots/interface_t0.png}
+\end{figure}
+\end{minipage}
+\end{tabular}
+\end{frame}
+
+\begin{frame}
+
+\begin{tabular}{l l}
+\begin{minipage}{0.5\textwidth}
+
+\begin{figure}[h!]
+\includegraphics[width=7cm]{plots/vel4.png}
+\end{figure}
+\end{minipage}
+&
+\begin{minipage}{0.5\textwidth}
+\begin{figure}[h!]
+  \includegraphics[width=4cm]{plots/interface_t4.png}
+\end{figure}
+\end{minipage}
+\end{tabular}
+
+\end{frame}
+
+\begin{frame}
+\begin{tabular}{l l}
+\begin{minipage}{0.5\textwidth}
+\begin{figure}[h!]
+\includegraphics[width=7cm]{plots/vel10.png}
+\end{figure}
+\end{minipage}
+&
+\begin{minipage}{0.5\textwidth}
+\begin{figure}[h!]
+  \includegraphics[width=4cm]{plots/interface_t10.png}
+\end{figure}
+\end{minipage}
+\end{tabular}
+\dots more to come 
 \end{frame}
 
 \section{Outlook}
 \begin{frame}
 \frametitle{Outlook}
-$\rightarrow$ \textit{Conclusion habe ich rausgenommen. Ich wüsste zumindest nicht was wir da reinschreiben könnten. Wenn du was weißt, darfst du das aber sehr gerne wieder einfügen.}
+\textit{\dots so far intermediate results}
 
 \vspace{.8cm} 
 Outlook:
 \begin{itemize}
 \item<1-> Add correction term to prevent mass loss
 \item<2-> Reduce computational effort: Store Level-Set function only in narrow band around interface, Adalsteinsson and Sethian
-TODO: Quellen als Footnotes + Uebersichtsfolie
-\item<3-> Include thermal flow (simulate e.g. lava lamp) / Include gravity
+\item<3-> $\rightarrow$ \dots ?
+%TODO: Quellen als Footnotes + Uebersichtsfolie
+%\item<3-> Include thermal flow (simulate e.g. lava lamp) / Include gravity
 \end{itemize}
 
 \end{frame}
@@ -237,6 +286,8 @@ TODO: Quellen als Footnotes + Uebersichtsfolie
 \begin{thebibliography}{etw}
    \bibitem{thoemmes}
      Thömmes, Guido, et al. "A lattice Boltzmann method for immiscible multiphase flow simulations using the level set method." Journal of Computational Physics 228.4 (2009): 1139-1156
+     \bibitem{adalseth}
+     D. Adalsteinsson, and J. A. Sethian. A fast level set method for propagating interfaces. J. Comput. Phys., 118(2):269-277, 1995
    \bibitem{mitchell}
      Mitchell, Ian, A Toolbox of Level Set Methods
 \end{thebibliography}
