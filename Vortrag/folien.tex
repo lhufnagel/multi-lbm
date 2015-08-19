@@ -126,6 +126,34 @@ $$
 \end{frame}
 
 \begin{frame}
+\frametitle{Mathematic foundation}
+\framesubtitle{Solvers for the two-phase problem}
+\begin{itemize}
+\item<1-> Colour gradient method of Gunstensen and Rothman
+\begin{itemize}
+\item only for small density and viscosity differences
+\end{itemize}
+\item<2-> Method of Shan and Chen
+\begin{itemize}
+\item models miscible fluids
+\item immiscible flows only approximatly
+\end{itemize}
+\item<3-> Free surface methods
+\begin{itemize}
+\item only for big density and viscosity differences
+\end{itemize}
+\item<4-> Method of Thoemmes and Becker
+\begin{itemize}
+\item using Level Set Method for interface motion
+\item small and big density/viscosity differences possible
+\item mass loss in Level Set Method
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Mathematic foundation}
+\framesubtitle{Ingredients for solver with Level Set Method}
 To solve the two-phase problem we need to:
 \begin{itemize}
 \item<1-> solve the flow equations $\rightarrow$ LBM
@@ -134,21 +162,67 @@ To solve the two-phase problem we need to:
 \end{itemize}
 \end{frame}
 
+
+\begin{frame}
+\frametitle{Mathematic foundation}
+\framesubtitle{LBM}
+\begin{itemize}
+\item<1-> Stream
+$$f_i(x+c_i,t+1) = f_i(x,t) - \frac{1}{\tau}(f_i - f_i^{eq}) + G_i$$
+\item<2-> Collide (Bhatnagar-Gross-Krook approximation)
+$$f_i^{eq}(\rho,v) = f_i^{*}(\rho + 3c_i \cdot v + \frac{9}{2}(c_i \cdot v)^2 - \frac{3}{2}v^2)$$
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Mathematic foundation}
+\framesubtitle{LBM}
+the corresponding D2Q9 weight factors
+\begin{figure}[h!]
+    %\flushright
+\includegraphics[width=3cm]{tutorial_basics03_d2q9.png}
+\end{figure}
+$$f_i^* = \begin{cases} \frac49 & i = C \\ \frac19 & i = N,E,S,W \\ \frac{1}{36} &  i = NE,SE,SW,NW \end{cases}$$
+\end{frame}
+
+\begin{frame}
+\frametitle{Mathematic foundation}
+\framesubtitle{LBM}
+we can compute for
+\begin{itemize}
+\item Density
+$$\rho(x,t) = \sum f_i(x,t)$$
+\item Velocity
+$$u = \sum f_i(x,t)c_i$$
+\end{itemize}
+\end{frame}
+
 \begin{frame}
 \frametitle{Mathematic foundation}
 \framesubtitle{Interface capturing}
-The interface between fluid phases is captured by a Level-Set Method. 
-I.e. a \textit{level set function} $\varphi:= \varphi(x,t) \rightarrow \mathbb{R}$ is tracked through the fluid domain. The interface is given (implicitly) by the zero-isosurface of this function.
-It holds:
-$$ \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0$$
-where $\vec v$ is the velocity at the interface; given by NSE.
+\visible<1->{Interface between fluid phases is captured by level set method}
+\visible<2->{
+\begin{itemize}
+\item<2-> Level set function: $\varphi:= \varphi(x,t) \rightarrow \mathbb{R}$
 
-Benefit of Level-Set Method:
+Interface is the zero-isosurface of this function
+\item<3-> Level set equation:
+$$ \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0$$
+where $\vec v$ is the velocity at the interface, given by NSE.
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}
+\frametitle{Mathematic foundation}
+\framesubtitle{Interface capturing}
+Benefits of Level-Set Method:
 \begin{itemize}
 \item<2-> Implicit surface description eases bubble coalescence/breakup in code
 \item<3-> High density and viscosity ratios ($>10^3$) possible for simulation
 \end{itemize}
 \end{frame}
+
 
 \begin{frame}
 \frametitle{Mathematic foundation}
@@ -163,7 +237,8 @@ Hydrodynamics are solved by LBM (Stream-Collide, D2Q9, SRT for our first test)
 \visible<1->{
 \begin{itemize}
 \item<2-> $\tilde{v}$ is the velocity on the interface along the direction $c_i$
-\item<3-> $R_i$ ensures the jump conditions of the normal stress and corrects the error terms resulting from the bounce back treatment
+\item<3-> calculated by linear interpolation:
+$$\tilde{v} = q v (x_2,t) + (1-q) v(x_1,t)$$
 \end{itemize}
 }
 \end{minipage}
@@ -177,23 +252,25 @@ Hydrodynamics are solved by LBM (Stream-Collide, D2Q9, SRT for our first test)
 \end{frame}
 
 \begin{frame}
-\visible<1->{
-$\tilde{v}$ is calculated by linear interpolation:
-$$\tilde{v} = q v (x_2,t) + (1-q) v(x_1,t)$$
-}
-\visible<2->{
-$R_i$ consists of several parts:
-$$R_i = 6 \Delta x^2 f_{i}^{*} {\Lambda}_i : A$$
-}
-\visible<3->{
+\frametitle{Mathematic foundation}
+\framesubtitle{Interface implementation (Methods Coupling)}
+$R_i$ ensures the jump conditions of the normal stress and corrects the error terms resulting from the bounce back treatment.
 \begin{itemize}
-\item<3-> with:
-$$ {\Lambda}_i = c_i \otimes c_i - \frac13 {|c_i|}^2 \mathbb{I}$$
-$$ A = -q(1-q)[S] - (q - 1/2) S^{2}$$
-\item<4-> $S^{(k)}$ velocity gradient at $x_k$
-\item<5-> $[S] = \lim_{\epsilon \to 0}(S(x+\epsilon \vec n) -S(x-\epsilon \vec n))$ jump of velocity gradient at the interface. Depends on normal, tangent and curvature.
+\item<1-> $R_i = 6 \Delta x^2 f_{i}^{*} {\Lambda}_i : A$,
+
+with $A : B = \sum_{i,j} A_{ij}B_{ij}$.
+\item<2->
+$ {\Lambda}_i = c_i \otimes c_i - \frac13 {|c_i|}^2 \mathbb{I}$ ,
+
+with $c_i \otimes c_i = c_i c_i^T$.
+
+\item<3->{$ A = -q(1-q)[S] - (q - 1/2) S^{(k)}$
+\begin{itemize}
+\item<3-> $S^{(k)}$ velocity gradient at $x_k$
+\item<4-> $[S]$ jump of velocity gradient at the interface. Depends on $\vec n$, $\vec t$ and $\kappa$.
 \end{itemize}
 }
+\end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -211,8 +288,27 @@ $$ A = -q(1-q)[S] - (q - 1/2) S^{2}$$
 \section{Results}
 \begin{frame}
 \frametitle{Results}
+\framesubtitle{Implementation}
+\begin{itemize}
+\item<1-> Implementation in Matlab
+\item<2-> Own LBM-solver
+\item<3-> Level set method solved by Toolbox of Ian Mitchell
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Results}
 \framesubtitle{Setup}
-Transient couette flow with immersed drop.
+\begin{itemize}
+\item<1-> Transient couette flow with immersed drop
+\item<2-> Fluids have the same $\rho_i, \nu_i \rightarrow [S]$ vanishes
+\item<3-> Goal: See interactions at the interface
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Results}
+\framesubtitle{Simulation}
 \begin{tabular}{l l}
 \begin{minipage}{0.5\textwidth}
 
@@ -230,7 +326,8 @@ Transient couette flow with immersed drop.
 \end{frame}
 
 \begin{frame}
-
+\frametitle{Results}
+\framesubtitle{Simulation}
 \begin{tabular}{l l}
 \begin{minipage}{0.5\textwidth}
 
@@ -249,6 +346,8 @@ Transient couette flow with immersed drop.
 \end{frame}
 
 \begin{frame}
+\frametitle{Results}
+\framesubtitle{Simulation}
 \begin{tabular}{l l}
 \begin{minipage}{0.5\textwidth}
 \begin{figure}[h!]
@@ -262,7 +361,6 @@ Transient couette flow with immersed drop.
 \end{figure}
 \end{minipage}
 \end{tabular}
-\dots more to come 
 \end{frame}
 
 \section{Outlook}
