@@ -74,13 +74,10 @@ small = 100 * eps;
 %---------------------------------------------------------------------------
 % What level set should we view?
 level = 0;
-
 % Pause after each plot?
 pauseAfterPlot = 0;
-
 % Delete previous plot before showing next?
 deleteLastPlot = 0;
-
 % Plot in separate subplots (set deleteLastPlot = 0 in this case)?
 useSubplots = 1;
 
@@ -243,6 +240,7 @@ while(tMax - tNow > small * tMax)
     end
     
     %boundary handling for the interface
+    
     % calculation of diff_f = f - f_eq
     rho = zeros(lbm_g.nx,lbm_g.ny);
     vel = zeros(lbm_g.nx,lbm_g.ny,2);
@@ -278,6 +276,14 @@ while(tMax - tNow > small * tMax)
                     q = 0.5;    % muss eigentlich aus level set berechnet werden
                     % pitfall: q und (1-q) müssen immer dem gleichen x zugeordnet werden
                     
+                    %q = data(x+1,y+1)/(data(x+1,y+1)-data(x+1+lbm_g.c(1,k),y+1+lbm_g.c(2,k))); 
+                    % Die Interpolation müsste so stimmen, dadurch ist aber
+                    % der add_term2 nicht mehr null, was das Programm zum
+                    % Absturz bringt. Es ist zu vermuten, dass der Fehler
+                    % in add_term2 steckt. Den muss ich eh nochmal
+                    % aufräumen...
+                    
+                    
                     %% add_term1
                     vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
                     add_term1 = 6*lbm_g.dx*lbm_g.weights(k)*vel_int'*lbm_g.c(:,k); % 6 h f^*_i c_i
@@ -287,7 +293,7 @@ while(tMax - tNow > small * tMax)
                     % 1: Der Punkt im anderen Fluid
                     S_2 = zeros(2);   % S^(2)
                     S_1 = zeros(2);   % S^(1)
-                    for l = 1:9     % langsam gehen mir die Buchstaben aus...
+                    for l = 1:9
                         diff_f_2 = diff_f(x,y,l);
                         diff_f_1 = diff_f(x+lbm_g.c(1,k),y+lbm_g.c(2,k),l);
                         S_2 = S_2 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_2;
@@ -298,9 +304,9 @@ while(tMax - tNow > small * tMax)
                     %% Lambda_i
                     Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/3.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
                     %% Lambda_i : [S] 
-                    S_average = (S_1 + S_2)*0.5;
-                    % Normale, Tangente und Krümmung können als erster
-                    % Ansatz über finite Differenzen bestimmt werden
+                    S_average = q*S_2+(1-q)*S_1;
+                    % Normale, Tangente und Krümmung werden in der Toolbox
+                    % bestimmt.
                     normal = [deriv(x+1,y+1,1);deriv(x+1,y+1,2)];
                     normal = normal/norm(normal);        % normal n
                     tangent = [-normal(2);normal(1)];    % tangent t
@@ -309,7 +315,7 @@ while(tMax - tNow > small * tMax)
                     % mu = mass_dens * v
                     mu_2 = norm([vel(x,y,1) ; vel(x,y,2)]);
                     mu_1 = norm([vel(x+lbm_g.c(1,k),y+lbm_g.c(1,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(1,k),2)]);
-                    mu_average = 0.5*(mu_1 + mu_2);
+                    mu_average = q*mu_2 + (1-q)*mu_1;
                     mu_jump = mu_1 - mu_2;        % <-- kommt von mir, würde ich nicht unbedingt darauf vertrauen
                     
                     p_jump = 1/(3*lbm_g.dx^2) *(rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) - rho(x,y));    % Auf S. 1147 beschrieben
