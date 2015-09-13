@@ -122,7 +122,7 @@ end
 %   Note that in the periodic BC case, these initial conditions will not
 %   be continuous across the boundary unless the circle is perfectly centered.
 %   In practice, we'll just ignore that little detail.
-center = [ 0.4; .5; 0.0; 0.0 ];
+center = [ 0.45; .5; 0.0; 0.0 ];
 radius = 0.35;
 data = zeros(size(g.xs{1}));
 for i = 1 : g.dim
@@ -273,10 +273,10 @@ while(tMax - tNow > small * tMax)
               for k = 2:9
                   if celltype(x+1,y+1) ~= celltype(x+1+lbm_g.c(1,k),y+1+lbm_g.c(2,k))
                     %% q
-                    q = 0.5;    % muss eigentlich aus level set berechnet werden
+                    %q = 0.5;    % muss eigentlich aus level set berechnet werden
                     % pitfall: q und (1-q) müssen immer dem gleichen x zugeordnet werden
                     
-                    %q = data(x+1,y+1)/(data(x+1,y+1)-data(x+1+lbm_g.c(1,k),y+1+lbm_g.c(2,k))); 
+                    q = data(x+1,y+1)/(data(x+1,y+1)-data(x+1+lbm_g.c(1,k),y+1+lbm_g.c(2,k))); 
                     % Die Interpolation müsste so stimmen, dadurch ist aber
                     % der add_term2 nicht mehr null, was das Programm zum
                     % Absturz bringt. Es ist zu vermuten, dass der Fehler
@@ -304,9 +304,8 @@ while(tMax - tNow > small * tMax)
                     %% Lambda_i
                     Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/3.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
                     %% Lambda_i : [S] 
-                    S_average = q*S_2+(1-q)*S_1;
-                    % Normale, Tangente und Krümmung werden in der Toolbox
-                    % bestimmt.
+                    S_average = (S_2+S_1)*0.5;
+                    % Normale, Tangente und Krümmung werden in der Toolbox bestimmt
                     normal = [deriv(x+1,y+1,1);deriv(x+1,y+1,2)];
                     normal = normal/norm(normal);        % normal n
                     tangent = [-normal(2);normal(1)];    % tangent t
@@ -315,14 +314,16 @@ while(tMax - tNow > small * tMax)
                     % mu = mass_dens * v
                     mu_2 = norm([vel(x,y,1) ; vel(x,y,2)]);
                     mu_1 = norm([vel(x+lbm_g.c(1,k),y+lbm_g.c(1,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(1,k),2)]);
-                    mu_average = q*mu_2 + (1-q)*mu_1;
-                    mu_jump = mu_1 - mu_2;        % <-- kommt von mir, würde ich nicht unbedingt darauf vertrauen
+                    mu_average = (mu_2 + mu_1)*0.5;
+                    mu_jump = mu_1 - mu_2;        % <-- kommt von mir. Leider konnte ich es nicht auf Richtigkeit prüfen
                     
                     p_jump = 1/(3*lbm_g.dx^2) *(rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) - rho(x,y));    % Auf S. 1147 beschrieben
                     % In der Formel steckt noch die Massendichte. Diese
-                    % habe ich vorerst außer acht gelassen.
+                    % habe ich vorerst außer acht gelassen, in dem
+                    % Glauben, dass diese ungefähr 1 ist.
                     
-                    sigma = 0;          % surface tension (bei uns tatsächlich 0, da wir noch keine zwei verschiedenen Fluide haben)
+                    %sigma = 0;          % surface tension
+                    sigma = 0.016e-17;          % surface tension
                     
                     
                     % Zwischenergebnisse
