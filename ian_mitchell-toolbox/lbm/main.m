@@ -122,13 +122,24 @@ end
 %   Note that in the periodic BC case, these initial conditions will not
 %   be continuous across the boundary unless the circle is perfectly centered.
 %   In practice, we'll just ignore that little detail.
-center = [ 0.45; .5; 0.0; 0.0 ];
-radius = 0.35;
-data = zeros(size(g.xs{1}));
-for i = 1 : g.dim
-  data = data + (g.xs{i} - center(i)).^2;
+
+testcase = 'circle';
+
+switch(testcase)
+    case 'circle'
+        center = [ 0.45; .5; 0.0; 0.0 ];
+        radius = 0.35;
+        data = zeros(size(g.xs{1}));
+        for i = 1 : g.dim
+          data = data + (g.xs{i} - center(i)).^2;
+        end
+        data = sqrt(data) - radius;
+    case 'line'
+        % Trennlinie bei x2 = 0.5 (Mitte des Grids)
+        data = g.xs{2} - 0.5;
+    otherwise
+        error('Testcase does not exist: %s', testcase);
 end
-data = sqrt(data) - radius;
 data0 = data;
 
 %---------------------------------------------------------------------------
@@ -268,20 +279,22 @@ while(tMax - tNow > small * tMax)
     
     [curvature, ~] = curvatureSecond(g, data);
     
-    for x=1:lbm_g.nx-1-3
-        for y = 1:lbm_g.ny-1-3
+    for x=1:g.N(1)
+        for y = 1:g.N(2)
               for k = 2:9
-                  if celltype(x+1,y+1) ~= celltype(x+1+lbm_g.c(1,k),y+1+lbm_g.c(2,k))
+                  if x+lbm_g.c(1,k) < 1 || x+lbm_g.c(1,k) > g.N(1) || y+lbm_g.c(2,k) < 1 || y+lbm_g.c(2,k) > g.N(2)
+                      continue
+                  end
+                  
+                  if celltype(x,y) ~= celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))
                     %% q
                     %q = 0.5;    % muss eigentlich aus level set berechnet werden
-                    % pitfall: q und (1-q) m¸ssen immer dem gleichen x zugeordnet werden
                     
-                    q = data(x+1,y+1)/(data(x+1,y+1)-data(x+1+lbm_g.c(1,k),y+1+lbm_g.c(2,k))); 
-                    % Die Interpolation m¸sste so stimmen, dadurch ist aber
-                    % der add_term2 nicht mehr null, was das Programm zum
-                    % Absturz bringt. Es ist zu vermuten, dass der Fehler
-                    % in add_term2 steckt. Den muss ich eh nochmal
-                    % aufr‰umen...
+                    q = data(x,y)/(data(x,y)-data(x+lbm_g.c(1,k),y+lbm_g.c(2,k))); 
+                    % Die Interpolation m¸sste so stimmen, funktioniert
+                    % aber bisher nur, wenn der Kreis nicht zu nahe an den
+                    % Rand kommt. Das selbe Problem tritt bei einer Linie
+                    % auf (zweiter Testfall).
                     
                     
                     %% add_term1
@@ -306,10 +319,10 @@ while(tMax - tNow > small * tMax)
                     %% Lambda_i : [S] 
                     S_average = (S_2+S_1)*0.5;
                     % Normale, Tangente und Kr¸mmung werden in der Toolbox bestimmt
-                    normal = [deriv(x+1,y+1,1);deriv(x+1,y+1,2)];
+                    normal = [deriv(x,y,1);deriv(x,y,2)];
                     normal = normal/norm(normal);        % normal n
                     tangent = [-normal(2);normal(1)];    % tangent t
-                    kappa = curvature(x+1,y+1);          % curvature
+                    kappa = curvature(x,y);          % curvature
                     
                     % mu = mass_dens * v
                     mu_2 = norm([vel(x,y,1) ; vel(x,y,2)]);
@@ -322,8 +335,8 @@ while(tMax - tNow > small * tMax)
                     % habe ich vorerst auﬂer acht gelassen, in dem
                     % Glauben, dass diese ungef‰hr 1 ist.
                     
-                    %sigma = 0;          % surface tension
-                    sigma = 0.016e-17;          % surface tension
+                    sigma = 0;          % surface tension
+                    %sigma = 0.016e-17;          % surface tension
                     
                     
                     % Zwischenergebnisse
