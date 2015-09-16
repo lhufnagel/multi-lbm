@@ -1,5 +1,6 @@
-function [ data, g, data0 ] = main(accuracy, displayType)
-% convectionDemo: demonstrate a simple convective flow field.
+clear;
+nargin = 0;
+% lbm-coupling
 %
 %   [ data, g, data0 ] = convectionDemo(accuracy, displayType)
 %  
@@ -32,15 +33,17 @@ function [ data, g, data0 ] = main(accuracy, displayType)
 %
 % Ian Mitchell, 2/9/04
 
-t_end = 10; % [s]
-x_len = 1; % [m]
+t_end = 1; % [s]
+x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
-lidVel = 2; % [m/s]
-visc  = 1e-4;% [m^2/s]
-lbm_it = 20; % No iterations until level-set update
+lidVel = .5; % [m/s]
+visc  = 1e-2;% [m^2/s]
+lbm_it = 10; % No iterations until level-set update
 
 lbm_g=Grid;
 lbm_g.dx=0.02; % [m]
+
+
 lbm_g.dt=0.001; % [s]
 lbm_g.c_s=sqrt(1/3); % [m/s]
 lbm_g.lidVel = [lidVel*lbm_g.dt/lbm_g.dx; 0];
@@ -61,7 +64,7 @@ run('./addPathToKernel');
 %---------------------------------------------------------------------------
 % Integration parameters.
 tMax = t_end;                  % End time.
-plotSteps = 1/(lbm_g.dt*lbm_it);         % How many intermediate plots to produce?
+plotSteps = t_end/(lbm_g.dt*lbm_it) + 1;         % How many intermediate plots to produce?
 t0 = 0;                      % Start time.
 singleStep = 0;              % Plot at each timestep (overrides tPlot).
 
@@ -100,7 +103,7 @@ g = processGrid(g);
 
 %---------------------------------------------------------------------------
 % Choose the flow field.
-v = @switchValue;
+ ;
 
 %---------------------------------------------------------------------------
 % What kind of display?
@@ -149,7 +152,7 @@ end
 
 % Set up spatial approximation scheme.
 schemeFunc = @termConvection;
-schemeData.velocity = v;
+schemeData.velocity = zeros(lbm_g.nx,lbm_g.ny,2);
 schemeData.grid = g;
 
 % Set up time approximation scheme.
@@ -290,7 +293,7 @@ while(tMax - tNow > small * tMax)
                     %% q
                     %q = 0.5;    % muss eigentlich aus level set berechnet werden
                     
-                    q = data(x,y)/(data(x,y)-data(x+lbm_g.c(1,k),y+lbm_g.c(2,k))); 
+                    q = data(x+lbm_g.c(1,k),y+lbm_g.c(2,k))/(data(x+lbm_g.c(1,k),y+lbm_g.c(2,k))-data(x,y)); 
                     % Die Interpolation müsste so stimmen, funktioniert
                     % aber bisher nur, wenn der Kreis nicht zu nahe an den
                     % Rand kommt. Das selbe Problem tritt bei einer Linie
@@ -324,11 +327,12 @@ while(tMax - tNow > small * tMax)
                     tangent = [-normal(2);normal(1)];    % tangent t
                     kappa = curvature(x,y);          % curvature
                     
-                    % mu = mass_dens * v
-                    mu_2 = norm([vel(x,y,1) ; vel(x,y,2)]);
-                    mu_1 = norm([vel(x+lbm_g.c(1,k),y+lbm_g.c(1,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(1,k),2)]);
+                    % mu = mass_dens * nu -> dynamic viscosity ;)
+
+                    mu_2 = visc; %massendichte noch dran multiplizieren
+                    mu_1 = visc;
                     mu_average = (mu_2 + mu_1)*0.5;
-                    mu_jump = mu_1 - mu_2;        % <-- kommt von mir. Leider konnte ich es nicht auf Richtigkeit prüfen
+                    mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
                     
                     p_jump = 1/(3*lbm_g.dx^2) *(rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) - rho(x,y));    % Auf S. 1147 beschrieben
                     % In der Formel steckt noch die Massendichte. Diese
@@ -395,6 +399,7 @@ while(tMax - tNow > small * tMax)
   % contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
   % colorbar;
 
+  schemeData.velocity = { vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 1); vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 2)};
   %% level set code
   
   % Reshape data array into column vector for ode solver call.
@@ -442,41 +447,3 @@ end
 endTime = cputime;
 fprintf('\nTotal execution time %g seconds\n', endTime - startTime);
 
-
-
-%---------------------------------------------------------------------------
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------------------------------------------------------------
-function out = switchValue(t, data, schemeData) %#ok<INUSL>
-% switchValue: switches between two values.
-%
-%  out = switchValue(t, data, schemeData)
-%
-% Returns a constant value:
-%           one     for t <= tSwitch;
-%           two     for t >  tSwitch.
-%
-% By setting one and two correctly, this function can implement
-%   the velocityFunc prototype for termConvection;
-%   the scalarGridFunc prototype for termNormal, termCurvature and others;
-%   and possibly some other prototypes...
-%
-% Parameters:
-%   t            Current time.
-%   data         Level set function.
-%   schemeData   Structure (see below).
-%
-%   out          Either schemeData.one or schemeData.two.
-%
-% schemeData is a structure containing data specific to this type of 
-%   term approximation.  For this function it contains the field(s)
-%
-%   .one         The value to return for t <= tSwitch.
-%
-% schemeData may contain other fields.
-
-  %checkStructureFields(schemeData, 'one');
-
-  out = {vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1); vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],2)};
-  end
-end
