@@ -122,7 +122,7 @@ end
 %   be continuous across the boundary unless the circle is perfectly centered.
 %   In practice, we'll just ignore that little detail.
 
-testcase = 'circle';
+testcase = 'line';
 
 switch(testcase)
     case 'circle'
@@ -356,9 +356,9 @@ while(tMax - tNow > small * tMax)
                 
                     %% do it
                     if k <= 5
-                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k+4) = lbm_g.cells(x,y,k) + add_term1 + add_term2;  
+                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k+4) = lbm_g.cells_new(x,y,k) + add_term1 + add_term2;  
                     else
-                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k-4) = lbm_g.cells(x,y,k) + add_term1 + add_term2;  
+                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k-4) = lbm_g.cells_new(x,y,k) + add_term1 + add_term2;  
                     end
                     
                   end
