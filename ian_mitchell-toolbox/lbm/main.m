@@ -36,18 +36,18 @@ nargin = 0;
 t_end = 1; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
-lidVel = .5; % [m/s]
-visc  = 1e-2;% [m^2/s]
-lbm_it = 10; % No iterations until level-set update
+lidVel = 2.5; % [m/s]
+visc  = 5e-2;% [m^2/s]
+lbm_it = 25; % No iterations until level-set update
 
 lbm_g=Grid;
-lbm_g.dx=0.02; % [m]
+lbm_g.dx=0.02/x_len; % [m]
 
 
 lbm_g.dt=0.001; % [s]
 lbm_g.c_s=sqrt(1/3); % [m/s]
 lbm_g.lidVel = [lidVel*lbm_g.dt/lbm_g.dx; 0];
-lbm_g.omega = 1/(visc/(lbm_g.c_s^2*lbm_g.dt) + 1/2);
+lbm_g.omega = 1/(3*visc*lbm_g.dt/lbm_g.dx^2 + 1/2);
 lbm_g.nx = x_len/lbm_g.dx + 2; %Ghost layer
 lbm_g.ny = y_len/lbm_g.dx + 2; %Ghost layer
 
@@ -281,7 +281,7 @@ while(tMax - tNow > small * tMax)
     deriv(:,:,2) = 0.5 * (derivL + derivR);
     
     [curvature, ~] = curvatureSecond(g, data);
-    
+     
     for x=1:g.N(1)
         for y = 1:g.N(2)
               for k = 2:9
@@ -334,7 +334,7 @@ while(tMax - tNow > small * tMax)
                     mu_average = (mu_2 + mu_1)*0.5;
                     mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
                     
-                    p_jump = 1/(3*lbm_g.dx^2) *(rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) - rho(x,y));    % Auf S. 1147 beschrieben
+                    p_jump = 0;%1/(3*lbm_g.dx^2) *(rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) - rho(x,y));    % Auf S. 1147 beschrieben
                     % In der Formel steckt noch die Massendichte. Diese
                     % habe ich vorerst außer acht gelassen, in dem
                     % Glauben, dass diese ungefähr 1 ist.
@@ -356,12 +356,13 @@ while(tMax - tNow > small * tMax)
                     %% add_term2 = R_i
                     Lambda_times_A = -q*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
                     add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
-                    
+                  
+                
                     %% do it
                     if k <= 5
-                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k+4) = lbm_g.cells_new(x,y,k) + add_term1 + add_term2;  
+                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k+4) = lbm_g.cells(x,y,k) + add_term1 + add_term2;  
                     else
-                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k-4) = lbm_g.cells_new(x,y,k) + add_term1 + add_term2;  
+                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k-4) = lbm_g.cells(x,y,k) + add_term1 + add_term2;  
                     end
                     
                   end
@@ -399,7 +400,7 @@ while(tMax - tNow > small * tMax)
   % contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
   % colorbar;
 
-  schemeData.velocity = { vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 1); vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 2)};
+  schemeData.velocity = { lbm_g.dx/lbm_g.dt*vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 1); lbm_g.dx/lbm_g.dt*vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 2)};
   %% level set code
   
   % Reshape data array into column vector for ode solver call.
