@@ -36,7 +36,7 @@ nargin = 0;
 t_end = 1; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
-lidVel = 2.5; % [m/s]
+lidVel = 5; % [m/s]
 visc  = 5e-2;% [m^2/s]
 lbm_it = 25; % No iterations until level-set update
 
@@ -100,10 +100,6 @@ else
   g.bdry = @addGhostExtrapolate;
 end
 g = processGrid(g);
-
-%---------------------------------------------------------------------------
-% Choose the flow field.
- ;
 
 %---------------------------------------------------------------------------
 % What kind of display?
@@ -334,7 +330,7 @@ while(tMax - tNow > small * tMax)
                     mu_average = (mu_2 + mu_1)*0.5;
                     mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
                     
-                    p_jump = 0;%1/(3*lbm_g.dx^2) *(rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) - rho(x,y));    % Auf S. 1147 beschrieben
+                    p_jump = 1/(3*lbm_g.dx^2) *(rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) - rho(x,y));    % Auf S. 1147 beschrieben
                     % In der Formel steckt noch die Massendichte. Diese
                     % habe ich vorerst außer acht gelassen, in dem
                     % Glauben, dass diese ungefähr 1 ist.
