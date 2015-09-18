@@ -36,8 +36,8 @@ nargin = 0;
 t_end = 1; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
-lidVel = 5; % [m/s]
-visc  = 5e-2;% [m^2/s]
+lidVel = 2.5; % [m/s]
+visc  = 1e-1;% [m^2/s]
 lbm_it = 25; % No iterations until level-set update
 
 lbm_g=Grid;
@@ -122,7 +122,7 @@ end
 %   be continuous across the boundary unless the circle is perfectly centered.
 %   In practice, we'll just ignore that little detail.
 
-testcase = 'line';
+testcase = 'circle';
 
 switch(testcase)
     case 'circle'
@@ -353,13 +353,12 @@ while(tMax - tNow > small * tMax)
                     Lambda_times_A = -q*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
                     add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
                   
-                
                     %% do it
-                    if k <= 5
-                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k+4) = lbm_g.cells_new(x,y,k) + add_term1 + add_term2;  
-                    else
-                        lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k),k-4) = lbm_g.cells_new(x,y,k) + add_term1 + add_term2;  
-                    end
+                    %lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k), lbm_g.invDir(k)) = lbm_g.cells_new(x,y,k) + add_term1 + add_term2;  %legacy
+
+                                                                    % | 
+                                                                    % V pre-stream value!
+                    lbm_g.cells_new(x,y, lbm_g.invDir(k)) = lbm_g.cells(x,y,k) + add_term1 + add_term2;  
                     
                   end
               end
