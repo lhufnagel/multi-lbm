@@ -4,12 +4,16 @@ classdef Grid
     dt
     nx
     ny
-    omega
+    rho_1
+    rho_2
+    omega_1
+    omega_2
     c_s
-    lidVel
+    lidVel_1
+    lidVel_2
     cells
     cells_new
-    type
+    %type
 
     % D2Q9; Indexing:
     % 9   2   3
