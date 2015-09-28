@@ -39,10 +39,15 @@ y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
             % To obtain physical value we multiply by physical density, see e.g. formula for pressure jump, page 1147
 rho_phys(2) = 1; % [kg/m^3] % 
-lidVel = 2.5; % [m/s]
+lidVel = 1; % [m/s]
 visc(1)  = 1e-1;% [m^2/s]
 visc(2)  = 1e-1;% [m^2/s]
-lbm_it = 15; % No iterations until level-set update
+lbm_it = 10; % Number of iterations until level-set update
+% Diese Zahl sollte mMn folgendermaßen beschränkt sein:
+% Delta_T = lbm_it * lbm_g.dt ist das Zeitinterval, in dem sich Level-Set und LBM abwechseln.
+% Die maximale Geschwindigkeit in der Lid-Driven-Cavity ist lidVel (wenn man starke Krümmungseffekte und daraus folgende große Oberflächenspannungen an kleinen Blasen ignoriert).
+% Da ich möchte, dass sich das Interface MAXIMAL eine Zelle weit bewegt pro Delta_T (CFL-Bedingung, außerdem geht sonst der Refill-Algorithmus kaputt),
+% muss lidVel * Delta_T = lidVel * lbm_it * lbm_g.dt < lbm_g.dx sein!
 
 lbm_g=Grid;
 lbm_g.dx=0.02/x_len; % [m]
@@ -204,6 +209,9 @@ end
 %---------------------------------------------------------------------------
 % Loop until tMax (subject to a little roundoff).
 tNow = t0;
+
+celltype_old = dataToCelltype(data);
+
 startTime = cputime;
 while(tMax - tNow > small * tMax)
 
@@ -211,6 +219,58 @@ while(tMax - tNow > small * tMax)
 
   % "Adding" Ghost layers here! 
   celltype = dataToCelltype(data);
+
+  % Refill-Algorithm for cells that changed their type
+  changed_type = celltype - celltype_old;
+  [x, y] = find(changed_type);
+
+  % get first order derivative (=> normals)
+  deriv = zeros(lbm_g.nx-2,lbm_g.ny-2,2);
+  [derivL,derivR] = upwindFirstENO3(g,data,1);
+  deriv(:,:,1) = 0.5 * (derivL + derivR);
+  [derivL,derivR] = upwindFirstENO3(g,data,2);
+  deriv(:,:,2) = 0.5 * (derivL + derivR);
+    
+  for i=1:length(x)
+
+    normal = [deriv(x(i)-1,y(i)-1,1);deriv(x(i)-1,y(i)-1,2)];
+    normal = normal/norm(normal); % normalize n
+    normal = -1*changed_type(x(i),y(i))*normal; % make it point inward
+
+    % Find lbm-link with smallest angle to interface normal
+    % -> Maximum of inner-product of normed vectors
+    [~, c_imax] = max((normal(1).*lbm_g.c(1,:) + normal(2).*lbm_g.c(2,:))./lbm_g.c_len);
+
+    if celltype(x(i),y(i)) ~= celltype(x(i)+lbm_g.c(1,c_imax),y(i)+lbm_g.c(2,c_imax))
+      %todo, what if both/no links are pointing into same celltype?!?!
+      disp('bad error in refill Algorithm');
+      return;
+    end
+    % We found the link pointing inward, i.e. away from the interface
+    % Now refill, i.e. 
+    % 1. interpolate density and velocity in current cell from neighbours along this link direction
+
+    % TODO ensure that all three nodes, we interpolate from are REALLY interior 
+    % (Could fail for small bubbles, with radius < 3 grid-cells....)
+
+    rho_interp = 3*rho(x(i)+lbm_g.c(1,c_imax),y(i)+lbm_g.c(2,c_imax)) - ...
+       3*rho(x(i)+2*lbm_g.c(1,c_imax),y(i)+2*lbm_g.c(2,c_imax)) + ...
+       rho(x(i)+2*lbm_g.c(1,c_imax),y(i)+2*lbm_g.c(2,c_imax)); 
+
+    % TODO Evtl aus nächstem Timestep interpolieren?!
+    % UND: Ich verstehe nicht, wieso die im Paper den vektor abziehen... er zeigt doch nach innen und ich interpoliere von inneren Punkten..
+
+    %vel_interp = ...
+    % TODO hier wirds sehr unschön: wenn für u_Gamma die Geschwindigkeit v aus dem Level-Set (?!?! Siehe auch Paper Sektion 5.3) verwendet werden soll. 
+    % Diese Geschwindigkeit stammt - wenn dann - aus der Fast-Marching/Constant Velocity extension methode. 
+    % Diese Methode implementiert die Bibliothek von Mitchel allerdings nicht. (Im Gegensatz zu evtl http://ktchu.serendipityresearch.org/software/lsmlib/ )
+    % -> ??
+
+    % 2. equilibrium berechnen mit rho_interp und vel_interp
+    % 3. non_eq von nearest neightbour kopieren
+    % 4. lbm_g.cells(x(i),y(i),:) = eq(:) + non_eq(:);
+  end
+    
 
   %% LBM loop
   for t=1:lbm_it
@@ -286,6 +346,7 @@ while(tMax - tNow > small * tMax)
     [derivL,derivR] = upwindFirstENO3(g,data,2);
     deriv(:,:,2) = 0.5 * (derivL + derivR);
     
+    % get curvature
     [curvature, ~] = curvatureSecond(g, data);
      
     for x=2:lbm_g.nx-1
@@ -403,6 +464,7 @@ while(tMax - tNow > small * tMax)
 
   % "remove" ghost layers
 
+  celltype_old = celltype;
   schemeData.velocity = { lbm_g.dx/lbm_g.dt*vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 1); lbm_g.dx/lbm_g.dt*vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 2)};
   %% level set code
 
