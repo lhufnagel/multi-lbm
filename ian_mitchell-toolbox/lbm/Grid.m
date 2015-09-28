@@ -4,12 +4,12 @@ classdef Grid
     dt
     nx
     ny
-    omega
+    omega % Use 2-dim-Vector.... a little ugly
     c_s
-    lidVel
+    lidVel % die gibt es nur einmal
     cells
     cells_new
-    type
+    %type
 
     % D2Q9; Indexing:
     % 9   2   3
