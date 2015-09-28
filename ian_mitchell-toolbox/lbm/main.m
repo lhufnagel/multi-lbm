@@ -202,7 +202,7 @@ tNow = t0;
 startTime = cputime;
 while(tMax - tNow > small * tMax)
   %% Pass Data from level set to LBM
-  celltype = dataToCelltype(data);
+  %celltype = dataToCelltype(data);
   %% LBM loop
   for t=1:lbm_it
     %lbm stream
@@ -285,7 +285,8 @@ while(tMax - tNow > small * tMax)
                       continue
                   end
                   
-                  if celltype(x,y) ~= celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))
+                  %Hier evtl die "isNearInterface(..)"-Funktion verwenden? (Doku S. 124)
+                  if sign(data(x,y)) ~= sign(data(x+lbm_g.c(1,k),y+lbm_g.c(2,k)))
                     %% q
                     %q = 0.5;    % muss eigentlich aus level set berechnet werden
                     
@@ -294,6 +295,9 @@ while(tMax - tNow > small * tMax)
                     % aber bisher nur, wenn der Kreis nicht zu nahe an den
                     % Rand kommt. Das selbe Problem tritt bei einer Linie
                     % auf (zweiter Testfall).
+
+                    %Die liniensegmente kriegt man mit contourc(g.xs{1}(:,1), g.xs{2}(1,:), data, [0 0]);
+                    % Doku: http://de.mathworks.com/help/matlab/ref/contour-properties.html#prop_ContourMatrix
                     
                     
                     %% add_term1
