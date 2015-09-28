@@ -36,12 +36,12 @@ nargin = 0;
 t_end = 1; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
-rho_1 = 1; % Density    % reference --> should always stay 1
-rho_2 = 1; % Density    % <-- not sure how to use this right now..
-lidVel_1 = 2.5; % [m/s]
-lidVel_2 = 2.5; % [m/s]
-visc_1  = 1e-1;% [m^2/s]
-visc_2  = 1e-1;% [m^2/s]
+rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
+            % To obtain physical value we multiply by physical density, see e.g. formula for pressure jump, page 1147
+rho_phys(2) = 1; % [kg/m^3] % 
+lidVel = 2.5; % [m/s]
+visc(1)  = 1e-1;% [m^2/s]
+visc(2)  = 1e-1;% [m^2/s]
 lbm_it = 25; % No iterations until level-set update
 
 lbm_g=Grid;
@@ -50,10 +50,9 @@ lbm_g.dx=0.02/x_len; % [m]
 
 lbm_g.dt=0.001; % [s]
 lbm_g.c_s=sqrt(1/3); % [m/s]
-lbm_g.lidVel_1 = [lidVel_1*lbm_g.dt/lbm_g.dx; 0];
-lbm_g.lidVel_2 = [lidVel_2*lbm_g.dt/lbm_g.dx; 0];
-lbm_g.omega_1 = 1/(3*visc_1*lbm_g.dt/lbm_g.dx^2 + 1/2);
-lbm_g.omega_2 = 1/(3*visc_2*lbm_g.dt/lbm_g.dx^2 + 1/2);
+lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
+lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2);
+lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 lbm_g.nx = x_len/lbm_g.dx + 2; %Ghost layer
 lbm_g.ny = y_len/lbm_g.dx + 2; %Ghost layer
 
@@ -220,14 +219,14 @@ while(tMax - tNow > small * tMax)
     for x=1:lbm_g.nx
       %north & South
       lbm_g.cells_new(x  , 2,2) = lbm_g.cells_new(x,1,6);
-      lbm_g.cells_new(x  , lbm_g.ny-1,6) = lbm_g.cells_new(x,lbm_g.ny,2) - 2/(lbm_g.c_s^2) * lbm_g.weights(2) * lbm_g.c(:,2)'*lbm_g.lidVel_1;
+      lbm_g.cells_new(x  , lbm_g.ny-1,6) = lbm_g.cells_new(x,lbm_g.ny,2) - 2/(lbm_g.c_s^2) * lbm_g.weights(2) * lbm_g.c(:,2)'*lbm_g.lidVel;
       if (x<lbm_g.nx)
         lbm_g.cells_new(x+1, 2,3) = lbm_g.cells_new(x,1,7);
-        lbm_g.cells_new(x+1, lbm_g.ny-1,5) = lbm_g.cells_new(x,lbm_g.ny,9) - 2/(lbm_g.c_s^2) * lbm_g.weights(9) * lbm_g.c(:,9)'*lbm_g.lidVel_1;
+        lbm_g.cells_new(x+1, lbm_g.ny-1,5) = lbm_g.cells_new(x,lbm_g.ny,9) - 2/(lbm_g.c_s^2) * lbm_g.weights(9) * lbm_g.c(:,9)'*lbm_g.lidVel;
       end
       if (x>1)
         lbm_g.cells_new(x-1, 2,9) = lbm_g.cells_new(x,1,5);
-        lbm_g.cells_new(x-1, lbm_g.ny-1,7) = lbm_g.cells_new(x,lbm_g.ny,3) - 2/(lbm_g.c_s^2) * lbm_g.weights(3) * lbm_g.c(:,3)'*lbm_g.lidVel_1;
+        lbm_g.cells_new(x-1, lbm_g.ny-1,7) = lbm_g.cells_new(x,lbm_g.ny,3) - 2/(lbm_g.c_s^2) * lbm_g.weights(3) * lbm_g.c(:,3)'*lbm_g.lidVel;
       end
     end
 
@@ -265,12 +264,15 @@ while(tMax - tNow > small * tMax)
       vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells_new(:,:,i);
       vel(:,:,2) = vel(:,:,2) + lbm_g.c(2,i) * lbm_g.cells_new(:,:,i);
     end
-    % in cells of fluid_2 we need to correct rho
+    % we need to correct rho
     for x = 2:lbm_g.nx-1
         for y = 2:lbm_g.ny-1
-            if celltype(x-1,y-1)  < 0
+            if celltype(x-1,y-1)  > 0
+                % fluid 1
+                rho(x,y) = rho_phys(1)*rho(x,y);
+            else
                 % fluid 2
-                rho(x,y) = rho_2*rho(x,y);
+                rho(x,y) = rho_phys(2)*rho(x,y);
             end
         end
     end
@@ -305,18 +307,16 @@ while(tMax - tNow > small * tMax)
                     %% get celltype-attributes
                     if celltype(x,y)  > 0
                         % fluid 1
-                        omega = lbm_g.omega_1;
-                        omega_alt = lbm_g.omega_2;
-                        lidVel = lidVel_1;
-                        visc = visc_1;
-                        visc_alt = visc_2;
+                        omega_this = lbm_g.omega(1);
+                        omega_other = lbm_g.omega(2);
+                        visc_this = visc(1);
+                        visc_other = visc(2);
                     else
                         % fluid 2
-                        omega = lbm_g.omega_2;
-                        omega_alt = lbm_g.omega_1;
-                        lidVel = lidVel_2;
-                        visc = visc_2;
-                        visc_alt = visc_1;
+                        omega_this = lbm_g.omega(2);
+                        omega_other = lbm_g.omega(1);
+                        visc_this = visc(2);
+                        visc_other = visc(1);
                     end
                     %% q
                     q = data(x+lbm_g.c(1,k),y+lbm_g.c(2,k))/(data(x+lbm_g.c(1,k),y+lbm_g.c(2,k))-data(x,y)); 
@@ -336,8 +336,8 @@ while(tMax - tNow > small * tMax)
                         S_2 = S_2 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_2;
                         S_1 = S_1 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_1;
                     end
-                    S_2 = -1.5 * omega * (1/lbm_g.dx^2) * S_2;
-                    S_1 = -1.5 * omega_alt * (1/lbm_g.dx^2) * S_1;
+                    S_2 = -1.5 * omega_this * (1/lbm_g.dx^2) * S_2;
+                    S_1 = -1.5 * omega_other * (1/lbm_g.dx^2) * S_1;
                     %% Lambda_i
                     Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/3.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
                     %% Lambda_i : [S] 
@@ -350,8 +350,8 @@ while(tMax - tNow > small * tMax)
                     
                     % mu = mass_dens * nu -> dynamic viscosity ;)
 
-                    mu_2 = visc; %massendichte noch dran multiplizieren
-                    mu_1 = visc_alt;
+                    mu_2 = visc_this; %massendichte noch dran multiplizieren
+                    mu_1 = visc_other;
                     mu_average = (mu_2 + mu_1)*0.5;
                     mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
                     
@@ -398,25 +398,39 @@ while(tMax - tNow > small * tMax)
       vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells_new(:,:,i);
       vel(:,:,2) = vel(:,:,2) + lbm_g.c(2,i) * lbm_g.cells_new(:,:,i);
     end
-    % in cells of fluid_2 we need to correct rho
+    % we need to correct rho
     for x = 2:lbm_g.nx-1
         for y = 2:lbm_g.ny-1
-            if celltype(x-1,y-1)  < 0
+            if celltype(x-1,y-1)  > 0
+                % fluid 1
+                rho(x,y) = rho_phys(1)*rho(x,y);
+            else
                 % fluid 2
-                rho(x,y) = rho_2*rho(x,y);
+                rho(x,y) = rho_phys(2)*rho(x,y);
             end
         end
     end
 
+    % create field with omega values (for collide-step)
+    omega_field = lbm_g.omega(1) * ones(lbm_g.nx,lbm_g.ny);
+    for x = 2:lbm_g.nx-1
+        for y = 2:lbm_g.ny-1
+            if celltype(x-1,y-1) < 0
+                omega_field(x,y) = lbm_g.omega(2);
+            end
+        end
+    end
+    
     %! Here cells_new is implicitly swapped with the old cells -> Stream-Collide!
     for i=1:9
       cTimesU = lbm_g.c(1,i) * vel(:,:,1) + lbm_g.c(2,i) * vel(:,:,2);
-      lbm_g.cells(:,:,i) = lbm_g.cells_new(:,:,i) - lbm_g.omega_1 .* (lbm_g.cells_new(:,:,i) - ...  % omega_1 must be replaced!!
+      lbm_g.cells(:,:,i) = lbm_g.cells_new(:,:,i) - omega_field(:,:) .* (lbm_g.cells_new(:,:,i) - ...
           lbm_g.weights(i) .* (rho(:,:) + ...
             1/(lbm_g.c_s^2) .* cTimesU(:,:) + ...
             1/(2*lbm_g.c_s^4) .* (cTimesU(:,:)).^2 - ...
             1/(2*lbm_g.c_s^2) .* (vel(:,:,1).^2 + vel(:,:,2).^2)));
     end
+    
   end
 
   % LBM plot
