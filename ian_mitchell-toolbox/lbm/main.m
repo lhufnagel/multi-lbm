@@ -33,7 +33,7 @@ nargin = 0;
 %
 % Ian Mitchell, 2/9/04
 
-t_end = .25; % [s]
+t_end = 1; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
@@ -42,6 +42,7 @@ rho_phys(2) = 1; % [kg/m^3] %
 lidVel = 1; % [m/s]
 visc(1)  = 1e-1;% [m^2/s]
 visc(2)  = 1e-1;% [m^2/s]
+sigma = 0; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
 lbm_it = 10; % Number of iterations until level-set update
 % Diese Zahl sollte mMn folgendermaßen beschränkt sein:
 % Delta_T = lbm_it * lbm_g.dt ist das Zeitinterval, in dem sich Level-Set und LBM abwechseln.
@@ -232,6 +233,9 @@ while(tMax - tNow > small * tMax)
   deriv(:,:,2) = 0.5 * (derivL + derivR);
     
   for i=1:length(x)
+    if x(i) < 2 || x(i) > g.N(1)+1 || y(i) < 2 || y(i) > g.N(2)+1
+      continue;
+    end
 
     normal = [deriv(x(i)-1,y(i)-1,1);deriv(x(i)-1,y(i)-1,2)];
     normal = normal/norm(normal); % normalize n
@@ -239,10 +243,11 @@ while(tMax - tNow > small * tMax)
 
     % Find lbm-link with smallest angle to interface normal
     % -> Maximum of inner-product of normed vectors
-    [~, c_imax] = max((normal(1).*lbm_g.c(1,:) + normal(2).*lbm_g.c(2,:))./lbm_g.c_len);
+    [~, i_c_imax] = max((normal(1).*lbm_g.c(1,:) + normal(2).*lbm_g.c(2,:))./lbm_g.c_len);
+    c_imax = lbm_g.c(:,i_c_imax);
 
-    if celltype(x(i),y(i)) ~= celltype(x(i)+lbm_g.c(1,c_imax),y(i)+lbm_g.c(2,c_imax))
-      %todo, what if both/no links are pointing into same celltype?!?!
+    if celltype(x(i),y(i)) ~= celltype(x(i) + c_imax(1),y(i) + c_imax(2))
+      %TODO, what if both/no links are pointing into same celltype?!?!
       disp('bad error in refill Algorithm');
       return;
     end
@@ -253,22 +258,49 @@ while(tMax - tNow > small * tMax)
     % TODO ensure that all three nodes, we interpolate from are REALLY interior 
     % (Could fail for small bubbles, with radius < 3 grid-cells....)
 
-    rho_interp = 3*rho(x(i)+lbm_g.c(1,c_imax),y(i)+lbm_g.c(2,c_imax)) - ...
-       3*rho(x(i)+2*lbm_g.c(1,c_imax),y(i)+2*lbm_g.c(2,c_imax)) + ...
-       rho(x(i)+2*lbm_g.c(1,c_imax),y(i)+2*lbm_g.c(2,c_imax)); 
+    rho_interp = 3 * rho(x(i) + c_imax(1), y(i) + c_imax(2)) - ...
+       3 * rho(x(i) + 2*c_imax(1), y(i) + 2*c_imax(2)) + ...
+       rho(x(i) + 3*c_imax(1), y(i) + 3*c_imax(2)); 
 
     % TODO Evtl aus nächstem Timestep interpolieren?!
     % UND: Ich verstehe nicht, wieso die im Paper den vektor abziehen... er zeigt doch nach innen und ich interpoliere von inneren Punkten..
 
-    %vel_interp = ...
-    % TODO hier wirds sehr unschön: wenn für u_Gamma die Geschwindigkeit v aus dem Level-Set (?!?! Siehe auch Paper Sektion 5.3) verwendet werden soll. 
-    % Diese Geschwindigkeit stammt - wenn dann - aus der Fast-Marching/Constant Velocity extension methode. 
+    vel_interp = 3 * vel(x(i) + c_imax(1), y(i) + c_imax(2),:) - ...
+       3 * vel(x(i) + 2*c_imax(1), y(i) + 2*c_imax(2),:) + ...
+       vel(x(i) + 3*c_imax(1), y(i) + 3*c_imax(2),:); 
+
+    % TODO hier wirds sehr unschön: In der Interpolationsformel im Thömmes-Paper wird für u_Gamma die Geschwindigkeit v aus dem Level-Set (?!?! Siehe auch Paper Kapitel 5.3) verwendet. 
+    % Diese Geschwindigkeit stammt - so wie ich es verstehe - aus der Fast-Marching/Constant extension velocity  methode. 
     % Diese Methode implementiert die Bibliothek von Mitchel allerdings nicht. (Im Gegensatz zu evtl http://ktchu.serendipityresearch.org/software/lsmlib/ )
-    % -> ??
+    % -> ?? 
+    % ... -> ich verwende die Formel von rho auch für die Geschwindigkeit. 
+    % Die Formel ist auch zu finden in Lallemand & Luo: Lattice Boltzmann method for moving boundaries. J Comput Phys 184(2): 406- 421
+    % und sollte laut dem Paper ähnliche Ergebnisse produzieren (siehe Ende von Kapitel 3 in dem Paper)
+
+
 
     % 2. equilibrium berechnen mit rho_interp und vel_interp
-    % 3. non_eq von nearest neightbour kopieren
-    % 4. lbm_g.cells(x(i),y(i),:) = eq(:) + non_eq(:);
+    for j=1:9
+      cTimesU = lbm_g.c(1,j) * vel_interp(1) + lbm_g.c(2,j) * vel_interp(2);
+      equil(j) =  lbm_g.weights(j) .* (rho_interp + ...
+            1/(lbm_g.c_s^2) .* cTimesU + ...
+            1/(2*lbm_g.c_s^4) .* (cTimesU).^2 - ...
+            1/(2*lbm_g.c_s^2) .* (vel_interp(1).^2 + vel_interp(2).^2));
+    end
+
+    
+    % 3. non_eq von nearest neightbour also zelle(x(i) + c_imax(1), y(i) + c_imax(2)) kopieren
+    for j = 1:9
+        cTimesU = lbm_g.c(1,j) * vel(x(i) + c_imax(1), y(i) + c_imax(2),1) + lbm_g.c(2,j) * vel(x(i) + c_imax(1), y(i) + c_imax(2),2);
+        non_eq(j) = lbm_g.cells(x(i) + c_imax(1), y(i) + c_imax(2), j) - ...
+                    lbm_g.weights(j) .* (rho(x(i) + c_imax(1), y(i) + c_imax(2)) + ...
+                    1/(lbm_g.c_s^2) .* cTimesU + ...
+                    1/(2*lbm_g.c_s^4) .* (cTimesU).^2 - ...
+                    1/(2*lbm_g.c_s^2) .* (vel(x(i) + c_imax(1), y(i) + c_imax(2),1).^2 + vel(x(i) + c_imax(1), y(i) + c_imax(2),2).^2));
+    end
+
+    % 4. Reinitialise
+    lbm_g.cells(x(i),y(i),:) = equil(:) + non_eq(:);
   end
     
 
@@ -353,7 +385,7 @@ while(tMax - tNow > small * tMax)
         for y = 2:lbm_g.ny-1
               for k = 2:9
 
-                  if x+lbm_g.c(1,k) < 1 || x+lbm_g.c(1,k) > g.N(1) || y+lbm_g.c(2,k) < 1 || y+lbm_g.c(2,k) > g.N(2)  %TODO evtl anpassen
+                  if x+lbm_g.c(1,k) < 2 || x+lbm_g.c(1,k) > g.N(1)+1 || y+lbm_g.c(2,k) < 2 || y+lbm_g.c(2,k) > g.N(2)+1  %TODO evtl anpassen
                       continue
                   end
                   
@@ -373,6 +405,11 @@ while(tMax - tNow > small * tMax)
                     % Die Liniensegmente vom "exakten" Inteface kriegt man mit contourc(g.xs{1}(:,1), g.xs{2}(1,:), data, [0 0]);
                     % Rückgabe-Format Doku: http://de.mathworks.com/help/matlab/ref/contour-properties.html#prop_ContourMatrix
                     % Eventuell kann man damit q noch genauer berechnen (also exakt den Schnittpunkt mit dem Link c_i bilden)
+                    % N.B.: Mit dem contourc-Aufruf arbeitet zumindest der visualizeLevelSet-Aus der Mitchel-Bibliothek intern
+
+                    % Außerdem TODO : Vermutlich verliert data die  Signed-Distance-Eigenschaft. (Da wir nicht die Extension-Velocites generieren, i.e Fast-Marching-Methode nicht verwenden siehe Thömmes-Paper Kapitel 4.2.)
+                    % Folglich brauchen wir einen Aufruf von signedDistanceIterative(..), siehe Kapitel 3.4.7 in ToolboxLS-Doku.
+                    % Sonst wird hier q unsinnig berechnet.
                     
                     %% add_term1
                     vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
@@ -406,8 +443,7 @@ while(tMax - tNow > small * tMax)
                     
                     p_jump = 1/(3*lbm_g.dx^2) * ( rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) - rho(x,y)*rho_phys(celltype(x,y)));    % Auf S. 1147 beschrieben
                     
-                    sigma = 0.016;          % surface tension
-                    
+                                        
                     
                     % Zwischenergebnisse
                     S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal')');
@@ -459,8 +495,9 @@ while(tMax - tNow > small * tMax)
   quiver(vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1)',...
    vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],2)');
   % subplot(1,2,2);
-  % contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
-  % colorbar;
+  figure(3);
+  contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
+  colorbar;
 
   % "remove" ghost layers
 
