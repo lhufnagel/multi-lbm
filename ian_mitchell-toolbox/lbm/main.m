@@ -1,47 +1,21 @@
 clear;
 nargin = 0;
-% lbm-coupling
 %
-%   [ data, g, data0 ] = convectionDemo(accuracy, displayType)
-%  
-% This function was originally designed as a script file, so most of the
-%   options can only be modified in the file.
-%
-% For example, edit the file to change the grid dimension, boundary conditions,
-%   flow field parameters, etc.
-%
-% Parameters:
-%
-%   accuracy     Controls the order of approximations.
-%                  'low'         Use odeCFL1 and upwindFirstFirst (default).
-%                  'medium'      Use odeCFL2 and upwindFirstENO2.
-%                  'high'        Use odeCFL3 and upwindFirstENO3.
-%                  'veryHigh'    Use odeCFL3 and upwindFirstWENO5.
-%   displayType  String to specify how to display results.
-%                  The specific string depends on the grid dimension;
-%                  look at the helper visualizeLevelSet to see the options
-%                  (optional, default depends on grid dimension).
-%
+% Code based on convectionDemo
+
 %   data         Implicit surface function at t_max.
 %   g            Grid structure on which data was computed.
 %   data0        Implicit surface function at t_0.
 
-% Copyright 2004 Ian M. Mitchell (mitchell@cs.ubc.ca).
-% This software is used, copied and distributed under the licensing 
-%   agreement contained in the file LICENSE in the top directory of 
-%   the distribution.
-%
-% Ian Mitchell, 2/9/04
-
-t_end = 1; % [s]
+t_end = .5; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
             % To obtain physical value we multiply by physical density, see e.g. formula for pressure jump, page 1147
 rho_phys(2) = 1; % [kg/m^3] % 
 lidVel = 1; % [m/s]
-visc(1)  = 1e-1;% [m^2/s]
-visc(2)  = 1e-1;% [m^2/s]
+visc(1)  = 7.5e-2;% [m^2/s]
+visc(2)  = 7.5e-2;% [m^2/s]
 sigma = 0; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
 lbm_it = 10; % Number of iterations until level-set update
 % Diese Zahl sollte mMn folgendermaﬂen beschr‰nkt sein:
@@ -154,7 +128,7 @@ data0 = data;
 
 %---------------------------------------------------------------------------
 if(nargin < 1)
-  accuracy = 'low';
+  accuracy = 'medium';
 end
 
 % Set up spatial approximation scheme.
@@ -165,7 +139,12 @@ schemeData.grid = g;
 % Set up time approximation scheme.
 integratorOptions = odeCFLset('factorCFL', 0.5, 'stats', 'on');
 
-% Choose approximations at appropriate level of accuracy.
+% Choose approximations at appropriate level of accuracy. (Level-Set)
+%   accuracy     Controls the order of approximations.
+%                  'low'         Use odeCFL1 and upwindFirstFirst (default).
+%                  'medium'      Use odeCFL2 and upwindFirstENO2.
+%                  'high'        Use odeCFL3 and upwindFirstENO3.
+%                  'veryHigh'    Use odeCFL3 and upwindFirstWENO5.
 switch(accuracy)
  case 'low'
   schemeData.derivFunc = @upwindFirstFirst;
@@ -199,7 +178,7 @@ if(useSubplots)
   subplot(rows, cols, plotNum);
 end
 
-h = visualizeLevelSet(g, data, displayType, level, [ 't = ' num2str(t0) ]);
+h = visualizeLevelSet(g, data, 'contour', level, [ 't = ' num2str(t0) ]);
 
 hold on;
 if(g.dim > 1)
@@ -233,7 +212,7 @@ while(tMax - tNow > small * tMax)
   deriv(:,:,2) = 0.5 * (derivL + derivR);
     
   for i=1:length(x)
-    if x(i) < 2 || x(i) > g.N(1)+1 || y(i) < 2 || y(i) > g.N(2)+1
+    if x(i) < 3 || x(i) > g.N(1) || y(i) < 3 || y(i) > g.N(2)
       continue;
     end
 
@@ -409,7 +388,7 @@ while(tMax - tNow > small * tMax)
 
                     % Auﬂerdem TODO : Vermutlich verliert data die  Signed-Distance-Eigenschaft. (Da wir nicht die Extension-Velocites generieren, i.e Fast-Marching-Methode nicht verwenden siehe Thˆmmes-Paper Kapitel 4.2.)
                     % Folglich brauchen wir einen Aufruf von signedDistanceIterative(..), siehe Kapitel 3.4.7 in ToolboxLS-Doku.
-                    % Sonst wird hier q unsinnig berechnet.
+                    % Sonst wird hier q unsinnig berechnet(??)
                     
                     %% add_term1
                     vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
@@ -541,7 +520,7 @@ while(tMax - tNow > small * tMax)
   end
 
   % Create new visualization.
-  h = visualizeLevelSet(g, data, displayType, level, [ 't = ' num2str(tNow) ]);
+  h = visualizeLevelSet(g, data, 'contour', level, [ 't = ' num2str(tNow) ]);
 
   % Restore view.
   view(figure_az, figure_el);
