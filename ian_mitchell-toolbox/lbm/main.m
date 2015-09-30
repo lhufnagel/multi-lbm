@@ -367,83 +367,84 @@ while(tMax - tNow > small * tMax)
                   if x+lbm_g.c(1,k) < 2 || x+lbm_g.c(1,k) > g.N(1)+1 || y+lbm_g.c(2,k) < 2 || y+lbm_g.c(2,k) > g.N(2)+1  %TODO evtl anpassen
                       continue
                   end
-                  
+
                   %Hier evtl die "isNearInterface(..)"-Funktion verwenden? (Doku S. 124)
-                  if celltype(x,y) ~= celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))
-
-                    %% get celltype-attributes
-                    omega = lbm_g.omega(celltype(x,y));
-                    omega_alt = lbm_g.omega(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k)));
-
-                    % mu = mass_dens * nu -> dynamic viscosity
-                    mu_2 = visc(celltype(x,y)) * rho_phys(celltype(x,y)); 
-                    mu_1 = visc(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k)));
-
-                    %% q
-                    q = data(x+lbm_g.c(1,k) -1,y+lbm_g.c(2,k) -1)/(data(x+lbm_g.c(1,k) -1,y+lbm_g.c(2,k) -1)-data(x -1,y -1)); 
-                    % Die Liniensegmente vom "exakten" Inteface kriegt man mit contourc(g.xs{1}(:,1), g.xs{2}(1,:), data, [0 0]);
-                    % Rückgabe-Format Doku: http://de.mathworks.com/help/matlab/ref/contour-properties.html#prop_ContourMatrix
-                    % Eventuell kann man damit q noch genauer berechnen (also exakt den Schnittpunkt mit dem Link c_i bilden)
-                    % N.B.: Mit dem contourc-Aufruf arbeitet zumindest der visualizeLevelSet-Aus der Mitchel-Bibliothek intern
-
-                    % Außerdem TODO : Vermutlich verliert data die  Signed-Distance-Eigenschaft. (Da wir nicht die Extension-Velocites generieren, i.e Fast-Marching-Methode nicht verwenden siehe Thömmes-Paper Kapitel 4.2.)
-                    % Folglich brauchen wir einen Aufruf von signedDistanceIterative(..), siehe Kapitel 3.4.7 in ToolboxLS-Doku.
-                    % Sonst wird hier q unsinnig berechnet(??)
-                    
-                    %% add_term1
-                    vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
-                    add_term1 = 6*lbm_g.dx*lbm_g.weights(k)*vel_int'*lbm_g.c(:,k); % 6 h f^*_i c_i
-                    %% S^(k)
-                    % Bei der Vergabe der Indizes habe ich mich an das Paper gehalten
-                    % 2: Der Punkt den wir betrachten
-                    % 1: Der Punkt im anderen Fluid
-                    S_2 = zeros(2);   % S^(2)
-                    S_1 = zeros(2);   % S^(1)
-                    for l = 1:9
-                        diff_f_2 = diff_f(x,y,l);
-                        diff_f_1 = diff_f(x+lbm_g.c(1,k),y+lbm_g.c(2,k),l);
-                        S_2 = S_2 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_2;
-                        S_1 = S_1 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_1;
-                    end
-                    S_2 = -1.5 * omega * (1/lbm_g.dx^2) * S_2;
-                    S_1 = -1.5 * omega_alt * (1/lbm_g.dx^2) * S_1;
-                    %% Lambda_i
-                    Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/3.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
-                    %% Lambda_i : [S] 
-                    S_average = (S_2+S_1)*0.5;
-                    % Normale, Tangente und Krümmung werden in der Toolbox bestimmt
-                    normal = [deriv(x-1,y-1,1);deriv(x-1,y-1,2)];
-                    normal = normal/norm(normal);        % normal n
-                    tangent = [-normal(2);normal(1)];    % tangent t
-                    kappa = curvature(x-1,y-1);          % curvature
-                    
-                    mu_average = (mu_2 + mu_1)*0.5;
-                    mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
-                    
-                    p_jump = 1/(3*lbm_g.dx^2) * ( rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) - rho(x,y)*rho_phys(celltype(x,y)));    % Auf S. 1147 beschrieben
-                    
-                                        
-                    
-                    % Zwischenergebnisse
-                    S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal')');
-                    S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
-                    
-                    Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (norm(lbm_g.c(:,k))^2)/3) + ...
-                        2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tangent'*lbm_g.c(:,k));
-                    
-                    %% Lambda_i : S^(2)
-                    Lambda_times_S_2 = trace(Lambda_i*S_2');
-                    
-                    %% add_term2 = R_i
-                    Lambda_times_A = -q*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
-                    add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
-                  
-                    
-                                                                    % | 
-                    %% do it                                        % V pre-stream value!
-                    lbm_g.cells_new(x,y, lbm_g.invDir(k)) = lbm_g.cells(x,y,k) + add_term1 + add_term2;  
-                    
+                  if celltype(x,y) == celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))
+                      continue
                   end
+
+                  %% get celltype-attributes
+                  omega = lbm_g.omega(celltype(x,y));
+                  omega_alt = lbm_g.omega(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k)));
+
+                  % mu = mass_dens * nu -> dynamic viscosity
+                  mu_2 = visc(celltype(x,y)) * rho_phys(celltype(x,y)); 
+                  mu_1 = visc(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k)));
+
+                  %% q
+                  q = data(x+lbm_g.c(1,k) -1,y+lbm_g.c(2,k) -1)/(data(x+lbm_g.c(1,k) -1,y+lbm_g.c(2,k) -1)-data(x -1,y -1)); 
+                  % Die Liniensegmente vom "exakten" Inteface kriegt man mit contourc(g.xs{1}(:,1), g.xs{2}(1,:), data, [0 0]);
+                  % Rückgabe-Format Doku: http://de.mathworks.com/help/matlab/ref/contour-properties.html#prop_ContourMatrix
+                  % Eventuell kann man damit q noch genauer berechnen (also exakt den Schnittpunkt mit dem Link c_i bilden)
+                  % N.B.: Mit dem contourc-Aufruf arbeitet zumindest der visualizeLevelSet-Aus der Mitchel-Bibliothek intern
+
+                  % Außerdem TODO : Vermutlich verliert data die  Signed-Distance-Eigenschaft. (Da wir nicht die Extension-Velocites generieren, i.e Fast-Marching-Methode nicht verwenden siehe Thömmes-Paper Kapitel 4.2.)
+                  % Folglich brauchen wir einen Aufruf von signedDistanceIterative(..), siehe Kapitel 3.4.7 in ToolboxLS-Doku.
+                  % Sonst wird hier q unsinnig berechnet(??)
+
+                  %% add_term1
+                  vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
+                  add_term1 = 6 * lbm_g.dx * lbm_g.weights(k) * lbm_g.c(:,k)' * vel_int; % 6 h f^*_i c_i u
+                  %% S^(k)
+                  % Bei der Vergabe der Indizes habe ich mich an das Paper gehalten
+                  % 2: Der Punkt den wir betrachten
+                  % 1: Der Punkt im anderen Fluid
+                  S_2 = zeros(2);   % S^(2)
+                  S_1 = zeros(2);   % S^(1)
+                  for l = 1:9
+                      diff_f_2 = diff_f(x,y,l);
+                      diff_f_1 = diff_f(x+lbm_g.c(1,k),y+lbm_g.c(2,k),l);
+                      S_2 = S_2 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_2;
+                      S_1 = S_1 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_1;
+                  end
+                  S_2 = -1.5 * omega * (1/lbm_g.dx)^2 * S_2;
+                  S_1 = -1.5 * omega_alt * (1/lbm_g.dx)^2 * S_1;
+                  %% Lambda_i
+                  Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/3.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
+                  %% Lambda_i : [S] 
+                  S_average = (S_2+S_1)*0.5;
+                  % Normale, Tangente und Krümmung werden in der Toolbox bestimmt
+                  normal = [deriv(x-1,y-1,1);deriv(x-1,y-1,2)];
+                  normal = normal/norm(normal);        % normal n
+                  tangent = [-normal(2);normal(1)];    % tangent t
+                  kappa = curvature(x-1,y-1);          % curvature
+
+                  mu_average = (mu_2 + mu_1)*0.5;
+                  mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
+
+                  p_jump = 1/(3*lbm_g.dx^2) * ( rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) - rho(x,y)*rho_phys(celltype(x,y)));    % Auf S. 1147 beschrieben
+
+
+
+                  % Zwischenergebnisse
+                  S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal')');
+                  S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
+
+                  Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (norm(lbm_g.c(:,k))^2)/3) + ...
+                      2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tangent'*lbm_g.c(:,k));
+
+                  %% Lambda_i : S^(2)
+                  Lambda_times_S_2 = trace(Lambda_i*S_2');
+
+                  %% add_term2 = R_i
+                  Lambda_times_A = -q*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
+                  add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
+
+
+                                                                  % | 
+                  %% do it                                        % V pre-stream value!
+                  lbm_g.cells_new(x,y, lbm_g.invDir(k)) = lbm_g.cells(x,y,k) + add_term1 + add_term2;  
+
               end
         end
     end
