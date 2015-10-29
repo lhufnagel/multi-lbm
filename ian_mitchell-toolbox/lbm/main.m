@@ -28,7 +28,7 @@ lbm_g=Grid;
 lbm_g.dx=0.02/x_len; % [m]
 
 
-lbm_g.dt=0.001; % [s]
+lbm_g.dt=lbm_g.dx^2; % [s] 
 lbm_g.c_s=sqrt(1/3); % [m/s]
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
 lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2);
@@ -410,7 +410,7 @@ while(tMax - tNow > small * tMax)
                   S_2 = -1.5 * omega * (1/lbm_g.dx)^2 * S_2;
                   S_1 = -1.5 * omega_alt * (1/lbm_g.dx)^2 * S_1;
                   %% Lambda_i
-                  Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/3.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
+                  Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/2.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
                   %% Lambda_i : [S] 
                   S_average = (S_2+S_1)*0.5;
                   % Normale, Tangente und Krümmung werden in der Toolbox bestimmt
@@ -427,10 +427,10 @@ while(tMax - tNow > small * tMax)
 
 
                   % Zwischenergebnisse
-                  S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal')');
-                  S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
+                  S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal'));
+                  S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent'));
 
-                  Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (norm(lbm_g.c(:,k))^2)/3) + ...
+                  Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (norm(lbm_g.c(:,k))^2)/2) + ...
                       2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tangent'*lbm_g.c(:,k));
 
                   %% Lambda_i : S^(2)
