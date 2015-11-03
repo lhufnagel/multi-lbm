@@ -1,0 +1,111 @@
+%%
+%% This is file `docultexmm.tex', 
+%% Documentation for siam multimedia macros for use with LaTeX 2e
+%% 
+%% December 19, 2013
+%%
+%% Version 1.0.1
+%% 
+%% You are not allowed to change this file. 
+%% 
+%% You are allowed to distribute this file under the condition that 
+%% it is distributed together with all of the files in the siam macro 
+%% distribution. These are:
+%%
+%%  siamltexmm.cls (this file)
+%%  siam11.clo   (required size option for 11pt papers)
+%%  subeqn.clo   (allows equation numbers with lettered subelements)
+%%  siam.bst     (bibliographic style file for BibTeX)
+%%  docultexmm.tex (documentation file)
+%%
+%% If you receive only some of these files from someone, please contact: 
+%% multimedia@siam.org  
+%% 
+%% You are not allowed to distribute this file alone. You are not 
+%% allowed to take money for the distribution or use of either this 
+%% file or a changed version, except for a nominal charge for copying 
+%% etc.
+%%
+%% \CharacterTable
+%%  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
+%%   Lower-case    \a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z
+%%   Digits        \0\1\2\3\4\5\6\7\8\9
+%%   Exclamation   \!     Double quote  \"     Hash (number) \#
+%%   Dollar        \$     Percent       \%     Ampersand     \&
+%%   Acute accent  \'     Left paren    \(     Right paren   \)
+%%   Asterisk      \*     Plus          \+     Comma         \,
+%%   Minus         \-     Point         \.     Solidus       \/
+%%   Colon         \:     Semicolon     \;     Less than     \<
+%%   Equals        \=     Greater than  \>     Question mark \?
+%%   Commercial at \@     Left bracket  \[     Backslash     \\
+%%   Right bracket \]     Circumflex    \^     Underscore    \_
+%%   Grave accent  \`     Left brace    \{     Vertical bar  \|
+%%   Right brace   \}     Tilde         \~}
+
+\documentclass[final,leqno,onefignum,onetabnum]{siamltexmm}
+
+\title{Implementation of a lattice Boltzmann method for immiscible multiphase flow simulations using the level set method} 
+
+\author
+{Lorenz Hufnagel, Daniel Zint\\
+Chair for System-Simulation, Friedrich Alexander Univerit\"at Erlangen-N\"urnberg\\
+91058 Erlangen, Germany % ist das so richtig?
+}
+
+\begin{document}
+\maketitle
+\newcommand{\slugmaster}{%
+\slugger{siads}{xxxx}{xx}{x}{x--x}}%slugger should be set to juq, siads, sifin, or siims
+
+\begin{abstract}
+	We implemented the lattice Boltzmann method for immiscible multiphase flow simulations and combined it with the level set method according to the paper of G. Th\"ommes \cite{Thoemmes}. The level set method is used to calculate the movement of the interface between the two phases. The input for the level set method is computed by the lattice Boltzmann method. We reimplemented the test cases, mentioned in the paper, to study the method-coupling and its impact on accuracy.
+\end{abstract}
+
+\begin{keywords}
+	Lattice Boltzmann method,
+	Level set method,
+	Free surface,
+	Multiphase
+\end{keywords}
+
+\begin{AMS}\end{AMS}
+
+
+\pagestyle{myheadings}
+\thispagestyle{plain}
+%\markboth{TEX PRODUCTION}{USING SIAM'S MM \LaTeX\ MACROS}
+
+\section{Introduction}
+
+\section{Numerical Methods}
+
+\subsection{The Lattice Boltzmann Method}
+
+\subsection{The Level Set Method}
+
+\section{something new what we did / Results}
+
+\section{Conclusion}
+
+\begin{thebibliography}{1}	
+
+\bibitem{Thoemmes} {\sc G. Th\"ommes},{\em A lattice Boltzmann method for immiscible multiphase flow simulations using the level set method}, Journal of Computational Physics, 07.11.2008
+	
+%\bibitem{GoMiSa} {\sc M. Goossens, F. Mittelbach, and A. Samarin},
+%{\em The} \LaTeX\ {\em Companion}, Addison-Wesley, Reading, MA, 1994.
+
+%\bibitem{Higham} {\sc N.~J. Higham}, {\em Handbook of Writing for
+%the Mathematical Sciences}, Society for Industrial and Applied
+%Mathematics, Philadelphia, PA, 1993.
+
+%\bibitem{Lamport} {\sc L. Lamport}, \LaTeX: {\em A Document
+%Preparation System}, Addison-Wesley, Reading, MA, 1986.
+
+%\bibitem{SerLev} {\sc R. Seroul and S. Levy}, {\em A
+%Beginner's Book of} \TeX, Springer-Verlag, Berlin, New
+%York, 1991.
+\end{thebibliography}
+
+
+\end{document}
+%% end of file `docultexmm.tex'
