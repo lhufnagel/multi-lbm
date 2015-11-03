@@ -414,7 +414,7 @@ while(tMax - tNow > small * tMax)
                   %% Lambda_i : [S] 
                   S_average = (S_2+S_1)*0.5;
                   % Normale, Tangente und Krümmung werden in der Toolbox bestimmt
-                  normal = [deriv(x-1,y-1,1);deriv(x-1,y-1,2)];
+                  normal = (-1)^celltype(x,y) * [deriv(x-1,y-1,1);deriv(x-1,y-1,2)];
                   normal = normal/norm(normal);        % normal n
                   tangent = [-normal(2);normal(1)];    % tangent t
                   kappa = curvature(x-1,y-1);          % curvature
