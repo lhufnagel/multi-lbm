@@ -422,7 +422,7 @@ while(tMax - tNow > small * tMax)
                   mu_average = (mu_2 + mu_1)*0.5;
                   mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
 
-                  p_jump = 1/(3*lbm_g.dx^2) * ( rho(x+lbm_g.c(1,k),y+lbm_g.c(1,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) - rho(x,y)*rho_phys(celltype(x,y)));    % Auf S. 1147 beschrieben
+                  p_jump = 1/(3*lbm_g.dx^2) * ( rho(x+lbm_g.c(1,k),y+lbm_g.c(2,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) - rho(x,y)*rho_phys(celltype(x,y)));    % Auf S. 1147 beschrieben
 
 
 
