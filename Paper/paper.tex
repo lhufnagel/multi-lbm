@@ -58,7 +58,7 @@ Chair for System-Simulation, Friedrich Alexander Univerit\"at Erlangen-N\"urnber
 \slugger{siads}{xxxx}{xx}{x}{x--x}}%slugger should be set to juq, siads, sifin, or siims
 
 \begin{abstract}
-	We implemented the lattice Boltzmann method for immiscible multiphase flow simulations and combined it with the level set method according to the paper of G. Th\"ommes \cite{Thoemmes}. The level set method is used to calculate the movement of the interface between the two phases. The input for the level set method is computed by the lattice Boltzmann method. We reimplemented the test cases, mentioned in the paper, to study the method-coupling and its impact on accuracy.
+	We implemented the lattice Boltzmann method for immiscible multiphase flow simulations and combined it with the level set method according to the paper of G. Th\"ommes \cite{Thoemmes}. The level set method is used to calculate the movement of the interface between the two phases. The input for the level set method is computed by the lattice Boltzmann method. We reimplemented the test cases that are mentioned in the paper, to study the method-coupling and its impact on accuracy.
 \end{abstract}
 
 \begin{keywords}
@@ -76,20 +76,47 @@ Chair for System-Simulation, Friedrich Alexander Univerit\"at Erlangen-N\"urnber
 %\markboth{TEX PRODUCTION}{USING SIAM'S MM \LaTeX\ MACROS}
 
 \section{Introduction}
+%Something about the two-phase problem and some other algorithms that solve it. We could do this according to the presentation-slides.
+In engineering the immiscible two-phase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors. Also fingering in oil recovery is a common problem that can be seen as a immiscible two-phase problem.
+
+The two-phase flow problem can be described with the Navier-Stokes equations for two incompressible fluids. To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface (PICTURE). {\it continue here...}
+
+% Not done with this chapter ... 
+
+There are different approaches to solve the immiscible two-phase problem. The most spread among these approaches is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore there are free surface methods which only take one fluid in account for computation (REFERENCE!). They work best for big density and viscosity differences.
 
 \section{Numerical Methods}
+Describe the basic concepts of how the methods work. Just as a short introduction to the subsections.
 
 \subsection{The Lattice Boltzmann Method}
+Explain LBM and introduce the most important formulas we use. Give references for further reading?
 
 \subsection{The Level Set Method}
+Explain level set method and the level set equation. Introduce the Ian Mitchell Toolbox.
+
+\subsection{Coupling of LBM and level set method}
+Present the new boundary condition but without all the formula deriving we have in the Th\"ommes-paper. Maybe explain the refill method? Show Fig.2 of the Th\"ommes-paper and explain the coupling of the two methods.
 
 \section{something new what we did / Results}
+Present our test case (I think one would be enough) and describe the parameters we have studied. Give graphs that show their impact on accuracy.
 
 \section{Conclusion}
 
 \begin{thebibliography}{1}	
 
-\bibitem{Thoemmes} {\sc G. Th\"ommes},{\em A lattice Boltzmann method for immiscible multiphase flow simulations using the level set method}, Journal of Computational Physics, 07.11.2008
+\bibitem{Thoemmes} {\sc G. Th\"ommes, J. Becker}, {\em A lattice Boltzmann method for immiscible multiphase flow simulations using the level set method}, J. Comput. Phys. 228 (2009), 1139-1156
+
+\bibitem{Adalsteinsson} {\sc D. Adalsteinsson, J.A. Sethian}, {\em A fast level set method for propagating interfaces}, J. Comput. Phys. 118 (2) (1995) 269-277
+
+\bibitem{GRcg1} {\sc A.K. Gunstensen, D.H. Rothman, S. Zaleski, G. Zanetti}, {\em Lattice Boltzmann model of immiscible fluids}, Phys. Rev. A 43 (8) (1991) 4320-4327
+
+\bibitem{GRcg2} {\sc A.K. Gunstensen, D.H. Rothman}, {\em Macroscopic modeling of immiscible flows in three dimensions by a lattice Boltzman method}, Europhys. Lett. 18 (2) (1998) 157-161
+	
+\bibitem{GRcg3} {\sc K. Sankaranarayanan, I.G. Kevrekidies, S. Sundaresan, J. Lu, G. Tryggvason}, {\em A comparative study of lattice Boltzmann and front-tracking finite-difference methods for bubble simulations}, Int. J. Multiphase Flow 29 (1) (2003) 109-116
+
+\bibitem{ShanChen1} {\sc X. Shan, H. Chen}, {\em Lattice Boltzmann model for simulation flows with multiple phases and components}, Phys. Rev. E 47 (3) (1999) 567-603
+
+\bibitem{ShanChen2} {\sc X. Shan, H. Chen}, {\em Simulation of nonideal gases and liquid-gas phase transition by the Lattice Boltzmann equation}, Phys. Rev. E 49 (4) (1994) 2941
 	
 %\bibitem{GoMiSa} {\sc M. Goossens, F. Mittelbach, and A. Samarin},
 %{\em The} \LaTeX\ {\em Companion}, Addison-Wesley, Reading, MA, 1994.
