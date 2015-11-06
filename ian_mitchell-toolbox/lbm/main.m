@@ -1,4 +1,4 @@
-clear;
+%clear;
 nargin = 0;
 %
 % Code based on convectionDemo
@@ -7,17 +7,17 @@ nargin = 0;
 %   g            Grid structure on which data was computed.
 %   data0        Implicit surface function at t_0.
 
-t_end = .4; % [s]
+t_end = .1; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
             % To obtain physical value we multiply by physical density, see e.g. formula for pressure jump, page 1147
 rho_phys(2) = 1; % [kg/m^3] % 
 lidVel = 1; % [m/s]
-visc(1)  = 7.5e-1;% [m^2/s]
-visc(2)  = 7.5e-1;% [m^2/s]
-sigma = 0.0; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
-lbm_it = 20; % Number of iterations until level-set update
+visc(1)  = 5e-2;% [m^2/s] % Oben im Line-Testcase, muss kleinere Viskosität haben als die untere Schicht, sonst sinnlos
+visc(2)  = 2e-1;% [m^2/s]
+sigma = 0.016; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
+lbm_it = 10; % Number of iterations until level-set update
 % Diese Zahl sollte mMn folgendermaßen beschränkt sein:
 % Delta_T = lbm_it * lbm_g.dt ist das Zeitinterval, in dem sich Level-Set und LBM abwechseln.
 % Die maximale Geschwindigkeit in der Lid-Driven-Cavity ist lidVel (wenn man starke Krümmungseffekte und daraus folgende große Oberflächenspannungen an kleinen Blasen ignoriert).
@@ -31,7 +31,7 @@ lbm_g.dx=0.02/x_len; % [m]
 lbm_g.dt=lbm_g.dx^2; % [s] 
 lbm_g.c_s=sqrt(1/3); % [m/s]
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
-lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2);
+lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2); %TODO bound von unten: arXiv:0812.3242v2 letzter Absatz 1/1.8 = 0.555
 lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 lbm_g.nx = x_len/lbm_g.dx + 2; %Ghost layer
 lbm_g.ny = y_len/lbm_g.dx + 2; %Ghost layer
@@ -120,7 +120,8 @@ switch(testcase)
         data = sqrt(data) - radius;
     case 'line'
         % Trennlinie bei x2 = 0.45 (Bisschen unterhalb der Mitte des Grids)
-        data = g.xs{2} - 0.45;
+        separator_y = 0.75;
+        data = g.xs{2} - separator_y;
     otherwise
         error('Testcase does not exist: %s', testcase);
 end
@@ -283,6 +284,7 @@ while(tMax - tNow > small * tMax)
   end
     
 
+  rho_old = 0;
   %% LBM loop
   for t=1:lbm_it
 
@@ -342,13 +344,19 @@ while(tMax - tNow > small * tMax)
     data = [data(:,1), data, data(:,end)];
     data = [data(end,:); data; data(1,:)];
 
-    for x=2:lbm_g.nx-1
-        for y = 2:lbm_g.ny-1
+    deriv = [deriv(:,1,:), deriv, deriv(:,end,:)];
+    deriv = [deriv(end,:,:); deriv; deriv(1,:,:)];
+
+    curvature = [curvature(:,1), curvature, curvature(:,end)];
+    curvature = [curvature(end,:); curvature; curvature(1,:)];
+
+    for x=1:lbm_g.nx
+        for y = 1:lbm_g.ny
               for k = 2:9
 
-                 % if x+lbm_g.c(1,k) < 1 || x+lbm_g.c(1,k) > g.N(1)+2 || y+lbm_g.c(2,k) < 1 || y+lbm_g.c(2,k) > g.N(2)+2  %TODO evtl anpassen
-                 %     continue
-                 % end
+                  if x+lbm_g.c(1,k) < 1 || x+lbm_g.c(1,k) > g.N(1)+2 || y+lbm_g.c(2,k) < 1 || y+lbm_g.c(2,k) > g.N(2)+2  %TODO evtl anpassen
+                      continue
+                  end
 
                   %Hier evtl die "isNearInterface(..)"-Funktion verwenden? (Doku S. 124)
                   if celltype(x,y) == celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))
@@ -376,7 +384,9 @@ while(tMax - tNow > small * tMax)
 
                   %% add_term1
                   vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
-                  add_term1 = 6 *  lbm_g.weights(k) * lbm_g.c(:,k)' * vel_int; % 6 h f^*_i c_i u
+                  %add_term1 = 6 * lbm_g.dx * lbm_g.weights(k) * lbm_g.c(:,k)' * vel_int; % 6 h f^*_i c_i u
+                  add_term1 = 6 * lbm_g.weights(k) * lbm_g.c(:,k)' * vel_int; % 6 h f^*_i c_i u
+
                   %% S^(k)
                   % Bei der Vergabe der Indizes habe ich mich an das Paper gehalten
                   % 2: Der Punkt den wir betrachten
@@ -386,8 +396,10 @@ while(tMax - tNow > small * tMax)
                   for l = 1:9
                       diff_f_2 = diff_f(x,y,l);
                       diff_f_1 = diff_f(x+lbm_g.c(1,k),y+lbm_g.c(2,k),l);
-                      S_2 = S_2 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_2;
-                      S_1 = S_1 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_1;
+                     %S_2 = S_2 + (lbm_g.c(:,l) * lbm_g.c(:,l)' - lbm_g.c(:,l)'*lbm_g.c(:,l)/2*eye(2))* diff_f_2;
+                     %S_1 = S_1 + (lbm_g.c(:,l) * lbm_g.c(:,l)' - lbm_g.c(:,l)'*lbm_g.c(:,l)/2*eye(2))* diff_f_1;
+                      S_2 = S_2 + (lbm_g.c(:,l) * lbm_g.c(:,l)')* diff_f_2;
+                      S_1 = S_1 + (lbm_g.c(:,l) * lbm_g.c(:,l)')* diff_f_1;
                   end
                   S_2 = -1.5 * omega * (1/lbm_g.dx)^2 * S_2;
                   S_1 = -1.5 * omega_alt * (1/lbm_g.dx)^2 * S_1;
@@ -397,10 +409,10 @@ while(tMax - tNow > small * tMax)
                   %% Lambda_i : [S] 
                   S_average = (S_2+S_1)*0.5;
                   % Normale, Tangente und Krümmung werden in der Toolbox bestimmt
-                  normal = (-1)^celltype(x,y) * [deriv(x-1,y-1,1);deriv(x-1,y-1,2)];
+                  normal = (-1)^celltype(x,y) * [deriv(x,y,1);deriv(x,y,2)];
                   normal = normal/norm(normal);        % normal n
                   tangent = [-normal(2);normal(1)];    % tangent t
-                  kappa = curvature(x-1,y-1);          % curvature
+                  kappa = curvature(x,y);          % curvature
 
                   mu_average = (mu_2 + mu_1)*0.5;
                   mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
@@ -423,9 +435,13 @@ while(tMax - tNow > small * tMax)
                   Lambda_times_A = -q*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
                   add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
 
+                  %if (add_term2 > 1e-5)
+                  %  add_term2
+                  %end
+
                                                                                     % | 
                   %% do it                                                          % V pre-stream value!
-                  lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k), lbm_g.invDir(k)) = lbm_g.cells(x,y,k) - add_term1 - add_term2;  
+                  lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k), lbm_g.invDir(k)) = lbm_g.cells(x,y,k) - add_term1 + add_term2;  
                                                                                                      % ^ Minus sign! Draw scenario on paper and note that c_i should be opposite direction
                                                                                                      % | 
 
@@ -434,6 +450,7 @@ while(tMax - tNow > small * tMax)
     end
     
     data = [data([2:lbm_g.nx-1], [2:lbm_g.ny-1])];
+
     lbm_g.cells(:,:,:) = lbm_g.cells_new(:,:,:);
     
     %lbm stream
@@ -480,9 +497,22 @@ while(tMax - tNow > small * tMax)
       end
     end
 
+    lbm_g.cells_new(lbm_g.nx, 2:lbm_g.ny-1, :)     = lbm_g.cells_new(2,2:lbm_g.ny-1, :);
+    lbm_g.cells_new(1, 2:lbm_g.ny-1, :)  = lbm_g.cells_new(lbm_g.nx-1,2:lbm_g.ny-1, :);
+
+   %if (mod(t,10)==0)
+   %  norm(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2)-([lbm_g.lidVel(1):lbm_g.lidVel(1):1]-.5*lbm_g.lidVel(1))*lbm_g.lidVel(1))
+   %end
+    
+
 
     %copy  cells_new to cells
     lbm_g.cells(:,:,:) = lbm_g.cells_new(:,:,:);
+
+
+   %rho_sum = sum(sum(rho(2:lbm_g.nx-1,2:lbm_g.ny-1)));
+   %rho_sum - rho_old   %  >O(1e-10), es wird also irgendwo Masse erzeugt .... :-X
+   %rho_old = rho_sum;
 
   end
 
@@ -492,21 +522,30 @@ while(tMax - tNow > small * tMax)
   hold off
   plot(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2),[1:lbm_g.ny-2],'ro-');
   hold on
-  plot(([lbm_g.lidVel(1):lbm_g.lidVel(1):1]-.5*lbm_g.lidVel(1))*lbm_g.lidVel(1),[1:lbm_g.ny-2],'b-');
+
+  a2 = 1/(visc(2)/visc(1) + separator_y*(1-visc(2)/visc(1)));
+  a1 = visc(2)/visc(1) * a2;
+  offset = a2*separator_y*(1-visc(2)/visc(1));
+
+  plot(...
+    lbm_g.lidVel(1) *...
+    [a2 * ([lbm_g.lidVel(1) : lbm_g.lidVel(1) : separator_y] -.5*lbm_g.lidVel(1)),...
+     (a1 * ([lbm_g.lidVel(1)*ceil(separator_y/lbm_g.lidVel(1)) : lbm_g.lidVel(1) : 1]-.5*lbm_g.lidVel(1))) + offset],...
+    [1:lbm_g.ny-2],'b-');
   title('abs(velocity) at x-center');
   legend({'LBM','analytic'},'Location','SouthEast')
 
   %Velocity
- % figure(2);
- % % subplot(1,2,1);
- % quiver(vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1)',...
- %  vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],2)');
+  figure(2);
+  % subplot(1,2,1);
+  quiver(vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1)',...
+   vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],2)');
   % subplot(1,2,2);
   %Density
-  figure(3);
-  contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
-  title('Density');
-  colorbar;
+%  figure(3);
+%  contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
+%  title('Density');
+%  colorbar;
 
   % "remove" ghost layers
 
