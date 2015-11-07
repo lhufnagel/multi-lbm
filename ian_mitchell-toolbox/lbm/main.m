@@ -7,17 +7,17 @@ nargin = 0;
 %   g            Grid structure on which data was computed.
 %   data0        Implicit surface function at t_0.
 
-t_end = .5; % [s]
+t_end = .4; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
             % To obtain physical value we multiply by physical density, see e.g. formula for pressure jump, page 1147
 rho_phys(2) = 1; % [kg/m^3] % 
 lidVel = 1; % [m/s]
-visc(1)  = 7.5e-2;% [m^2/s]
-visc(2)  = 7.5e-2;% [m^2/s]
-sigma = 0; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
-lbm_it = 10; % Number of iterations until level-set update
+visc(1)  = 7.5e-1;% [m^2/s]
+visc(2)  = 7.5e-1;% [m^2/s]
+sigma = 0.0; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
+lbm_it = 20; % Number of iterations until level-set update
 % Diese Zahl sollte mMn folgendermaßen beschränkt sein:
 % Delta_T = lbm_it * lbm_g.dt ist das Zeitinterval, in dem sich Level-Set und LBM abwechseln.
 % Die maximale Geschwindigkeit in der Lid-Driven-Cavity ist lidVel (wenn man starke Krümmungseffekte und daraus folgende große Oberflächenspannungen an kleinen Blasen ignoriert).
@@ -107,7 +107,7 @@ end
 %   be continuous across the boundary unless the circle is perfectly centered.
 %   In practice, we'll just ignore that little detail.
 
-testcase = 'circle';
+testcase = 'line';
 
 switch(testcase)
     case 'circle'
@@ -119,8 +119,8 @@ switch(testcase)
         end
         data = sqrt(data) - radius;
     case 'line'
-        % Trennlinie bei x2 = 0.5 (Mitte des Grids)
-        data = g.xs{2} - 0.5;
+        % Trennlinie bei x2 = 0.45 (Bisschen unterhalb der Mitte des Grids)
+        data = g.xs{2} - 0.45;
     otherwise
         error('Testcase does not exist: %s', testcase);
 end
@@ -285,49 +285,26 @@ while(tMax - tNow > small * tMax)
 
   %% LBM loop
   for t=1:lbm_it
-    %lbm stream
-    for i=1:9 
-        lbm_g.cells_new(:,:,i) = circshift(lbm_g.cells(:,:,i), [lbm_g.c(1,i),lbm_g.c(2,i),0]); 
+
+
+    %lbm collide
+    rho = zeros(lbm_g.nx,lbm_g.ny);
+    vel = zeros(lbm_g.nx,lbm_g.ny,2);
+    for i=1:9
+      rho(:,:) = rho(:,:) + lbm_g.cells(:,:,i);
+      vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells(:,:,i);
+      vel(:,:,2) = vel(:,:,2) + lbm_g.c(2,i) * lbm_g.cells(:,:,i);
     end
 
-    %lbm ugly boundary handling
-    for x=1:lbm_g.nx
-      %north & South
-      lbm_g.cells_new(x  , 2,2) = lbm_g.cells_new(x,1,6);
-      lbm_g.cells_new(x  , lbm_g.ny-1,6) = lbm_g.cells_new(x,lbm_g.ny,2) - 2/(lbm_g.c_s^2) * lbm_g.weights(2) * lbm_g.c(:,2)'*lbm_g.lidVel;
-      if (x<lbm_g.nx)
-        lbm_g.cells_new(x+1, 2,3) = lbm_g.cells_new(x,1,7);
-        lbm_g.cells_new(x+1, lbm_g.ny-1,5) = lbm_g.cells_new(x,lbm_g.ny,9) - 2/(lbm_g.c_s^2) * lbm_g.weights(9) * lbm_g.c(:,9)'*lbm_g.lidVel;
-      end
-      if (x>1)
-        lbm_g.cells_new(x-1, 2,9) = lbm_g.cells_new(x,1,5);
-        lbm_g.cells_new(x-1, lbm_g.ny-1,7) = lbm_g.cells_new(x,lbm_g.ny,3) - 2/(lbm_g.c_s^2) * lbm_g.weights(3) * lbm_g.c(:,3)'*lbm_g.lidVel;
-      end
+    for i=1:9
+      cTimesU = lbm_g.c(1,i) * vel(:,:,1) + lbm_g.c(2,i) * vel(:,:,2);
+      lbm_g.cells(:,:,i) = lbm_g.cells(:,:,i) - lbm_g.omega(celltype(:,:)) .* (lbm_g.cells(:,:,i) - ...  
+          lbm_g.weights(i) .* (rho(:,:) + ...
+            1/(lbm_g.c_s^2) .* cTimesU(:,:) + ...
+            1/(2*lbm_g.c_s^4) .* (cTimesU(:,:)).^2 - ...
+            1/(2*lbm_g.c_s^2) .* (vel(:,:,1).^2 + vel(:,:,2).^2)));
     end
 
-    for y=2:lbm_g.ny-1
-      %east & west
-
-      %solid boundaries
-      %lbm_g.cells_new(lbm_g.nx-1, y ,8) = lbm_g.cells_new(lbm_g.nx,y, 4);
-      %lbm_g.cells_new(lbm_g.nx-1, y-1, 7) = lbm_g.cells_new(lbm_g.nx,y, 3);
-      %lbm_g.cells_new(lbm_g.nx-1, y+1, 9) = lbm_g.cells_new(lbm_g.nx,y, 5);
-      %lbm_g.cells_new(2, y  ,4) = lbm_g.cells_new(1,y, 8);
-      %lbm_g.cells_new(2, y-1,5) = lbm_g.cells_new(1,y, 9);
-      %lbm_g.cells_new(2, y+1,3) = lbm_g.cells_new(1,y, 7);
-      
-      %periodic boundaries
-      lbm_g.cells_new(2, y, 4)     = lbm_g.cells_new(lbm_g.nx,y, 4);
-      lbm_g.cells_new(lbm_g.nx-1, y,8) = lbm_g.cells_new(1,y,8);
-      if (y>2)
-        lbm_g.cells_new(2, y, 3)     = lbm_g.cells_new(lbm_g.nx,y, 3);
-        lbm_g.cells_new(lbm_g.nx-1, y,9) = lbm_g.cells_new(1,y,9);
-      end
-      if (y<lbm_g.ny-1)
-        lbm_g.cells_new(2, y,5)     = lbm_g.cells_new(lbm_g.nx,y, 5);
-        lbm_g.cells_new(lbm_g.nx-1, y,7) = lbm_g.cells_new(1,y,7);
-      end
-    end
     
     %boundary handling for the interface
     
@@ -335,15 +312,15 @@ while(tMax - tNow > small * tMax)
     rho = zeros(lbm_g.nx,lbm_g.ny); %lbm-Units!
     vel = zeros(lbm_g.nx,lbm_g.ny,2); %lbm-Units!
     for i=1:9
-      rho(:,:) = rho(:,:) + lbm_g.cells_new(:,:,i);
-      vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells_new(:,:,i);
-      vel(:,:,2) = vel(:,:,2) + lbm_g.c(2,i) * lbm_g.cells_new(:,:,i);
+      rho(:,:) = rho(:,:) + lbm_g.cells(:,:,i);
+      vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells(:,:,i);
+      vel(:,:,2) = vel(:,:,2) + lbm_g.c(2,i) * lbm_g.cells(:,:,i);
     end
     
     diff_f = zeros(lbm_g.nx,lbm_g.ny,9);
     for i = 1:9
         cTimesU = lbm_g.c(1,i) * vel(:,:,1) + lbm_g.c(2,i) * vel(:,:,2);
-        diff_f(:,:,i) = lbm_g.cells_new(:,:,i) - ...
+        diff_f(:,:,i) = lbm_g.cells(:,:,i) - ...
                     lbm_g.weights(i) .* (rho(:,:) + ...
                     1/(lbm_g.c_s^2) .* cTimesU(:,:) + ...
                     1/(2*lbm_g.c_s^4) .* (cTimesU(:,:)).^2 - ...
@@ -360,13 +337,18 @@ while(tMax - tNow > small * tMax)
     % get curvature
     [curvature, ~] = curvatureSecond(g, data);
      
+    lbm_g.cells_new(:,:,:) = lbm_g.cells(:,:,:);
+    
+    data = [data(:,1), data, data(:,end)];
+    data = [data(end,:); data; data(1,:)];
+
     for x=2:lbm_g.nx-1
         for y = 2:lbm_g.ny-1
               for k = 2:9
 
-                  if x+lbm_g.c(1,k) < 2 || x+lbm_g.c(1,k) > g.N(1)+1 || y+lbm_g.c(2,k) < 2 || y+lbm_g.c(2,k) > g.N(2)+1  %TODO evtl anpassen
-                      continue
-                  end
+                 % if x+lbm_g.c(1,k) < 1 || x+lbm_g.c(1,k) > g.N(1)+2 || y+lbm_g.c(2,k) < 1 || y+lbm_g.c(2,k) > g.N(2)+2  %TODO evtl anpassen
+                 %     continue
+                 % end
 
                   %Hier evtl die "isNearInterface(..)"-Funktion verwenden? (Doku S. 124)
                   if celltype(x,y) == celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))
@@ -382,7 +364,7 @@ while(tMax - tNow > small * tMax)
                   mu_1 = visc(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k)));
 
                   %% q
-                  q = data(x+lbm_g.c(1,k) -1,y+lbm_g.c(2,k) -1)/(data(x+lbm_g.c(1,k) -1,y+lbm_g.c(2,k) -1)-data(x -1,y -1)); 
+                  q = data(x+lbm_g.c(1,k), y+lbm_g.c(2,k))/(data(x+lbm_g.c(1,k), y+lbm_g.c(2,k)) - data(x,y)); 
                   % Die Liniensegmente vom "exakten" Inteface kriegt man mit contourc(g.xs{1}(:,1), g.xs{2}(1,:), data, [0 0]);
                   % Rückgabe-Format Doku: http://de.mathworks.com/help/matlab/ref/contour-properties.html#prop_ContourMatrix
                   % Eventuell kann man damit q noch genauer berechnen (also exakt den Schnittpunkt mit dem Link c_i bilden)
@@ -394,7 +376,7 @@ while(tMax - tNow > small * tMax)
 
                   %% add_term1
                   vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
-                  add_term1 = 6 * lbm_g.dx * lbm_g.weights(k) * lbm_g.c(:,k)' * vel_int; % 6 h f^*_i c_i u
+                  add_term1 = 6 *  lbm_g.weights(k) * lbm_g.c(:,k)' * vel_int; % 6 h f^*_i c_i u
                   %% S^(k)
                   % Bei der Vergabe der Indizes habe ich mich an das Paper gehalten
                   % 2: Der Punkt den wir betrachten
@@ -409,8 +391,9 @@ while(tMax - tNow > small * tMax)
                   end
                   S_2 = -1.5 * omega * (1/lbm_g.dx)^2 * S_2;
                   S_1 = -1.5 * omega_alt * (1/lbm_g.dx)^2 * S_1;
+
                   %% Lambda_i
-                  Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - (1.0/2.0)*norm(lbm_g.c(:,k))^2*eye(2);  % siehe S. 1143 oben
+                  Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - lbm_g.c(:,k)'*lbm_g.c(:,k)/2*eye(2);  % siehe S. 1143 oben
                   %% Lambda_i : [S] 
                   S_average = (S_2+S_1)*0.5;
                   % Normale, Tangente und Krümmung werden in der Toolbox bestimmt
@@ -440,43 +423,89 @@ while(tMax - tNow > small * tMax)
                   Lambda_times_A = -q*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
                   add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
 
-
-                                                                  % | 
-                  %% do it                                        % V pre-stream value!
-                  lbm_g.cells_new(x,y, lbm_g.invDir(k)) = lbm_g.cells(x,y,k) + add_term1 + add_term2;  
+                                                                                    % | 
+                  %% do it                                                          % V pre-stream value!
+                  lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k), lbm_g.invDir(k)) = lbm_g.cells(x,y,k) - add_term1 - add_term2;  
+                                                                                                     % ^ Minus sign! Draw scenario on paper and note that c_i should be opposite direction
+                                                                                                     % | 
 
               end
         end
     end
-
-    %lbm collide
-    rho = zeros(lbm_g.nx,lbm_g.ny);
-    vel = zeros(lbm_g.nx,lbm_g.ny,2);
-    for i=1:9
-      rho(:,:) = rho(:,:) + lbm_g.cells_new(:,:,i);
-      vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells_new(:,:,i);
-      vel(:,:,2) = vel(:,:,2) + lbm_g.c(2,i) * lbm_g.cells_new(:,:,i);
+    
+    data = [data([2:lbm_g.nx-1], [2:lbm_g.ny-1])];
+    lbm_g.cells(:,:,:) = lbm_g.cells_new(:,:,:);
+    
+    %lbm stream
+    for i=1:9 
+        lbm_g.cells_new(:,:,i) = circshift(lbm_g.cells(:,:,i), [lbm_g.c(1,i),lbm_g.c(2,i),0]); 
     end
 
-    %! Here cells_new is implicitly swapped with the old cells -> Stream-Collide!
-    for i=1:9
-      cTimesU = lbm_g.c(1,i) * vel(:,:,1) + lbm_g.c(2,i) * vel(:,:,2);
-      lbm_g.cells(:,:,i) = lbm_g.cells_new(:,:,i) - lbm_g.omega(celltype(:,:)) .* (lbm_g.cells_new(:,:,i) - ...  
-          lbm_g.weights(i) .* (rho(:,:) + ...
-            1/(lbm_g.c_s^2) .* cTimesU(:,:) + ...
-            1/(2*lbm_g.c_s^4) .* (cTimesU(:,:)).^2 - ...
-            1/(2*lbm_g.c_s^2) .* (vel(:,:,1).^2 + vel(:,:,2).^2)));
+    %lbm ugly boundary handling
+    for x=1:lbm_g.nx
+      %north & South
+      lbm_g.cells_new(x  , 2,2) = lbm_g.cells_new(x,1,6);
+      lbm_g.cells_new(x  , lbm_g.ny-1,6) = lbm_g.cells_new(x,lbm_g.ny,2) + 2/(lbm_g.c_s^2) * lbm_g.weights(2) * lbm_g.c(:,6)'*lbm_g.lidVel;
+      if (x<lbm_g.nx)
+        lbm_g.cells_new(x+1, 2,3) = lbm_g.cells_new(x,1,7);
+        lbm_g.cells_new(x+1, lbm_g.ny-1,5) = lbm_g.cells_new(x,lbm_g.ny,9) + 2/(lbm_g.c_s^2) * lbm_g.weights(9) * lbm_g.c(:,5)'*lbm_g.lidVel;
+      end
+      if (x>1)
+        lbm_g.cells_new(x-1, 2,9) = lbm_g.cells_new(x,1,5);
+        lbm_g.cells_new(x-1, lbm_g.ny-1,7) = lbm_g.cells_new(x,lbm_g.ny,3) + 2/(lbm_g.c_s^2) * lbm_g.weights(3) * lbm_g.c(:,7)'*lbm_g.lidVel;
+      end
     end
+
+    for y=2:lbm_g.ny-1
+      %east & west
+
+      %solid boundaries
+      %lbm_g.cells_new(lbm_g.nx-1, y ,8) = lbm_g.cells_new(lbm_g.nx,y, 4);
+      %lbm_g.cells_new(lbm_g.nx-1, y-1, 7) = lbm_g.cells_new(lbm_g.nx,y, 3);
+      %lbm_g.cells_new(lbm_g.nx-1, y+1, 9) = lbm_g.cells_new(lbm_g.nx,y, 5);
+      %lbm_g.cells_new(2, y  ,4) = lbm_g.cells_new(1,y, 8);
+      %lbm_g.cells_new(2, y-1,5) = lbm_g.cells_new(1,y, 9);
+      %lbm_g.cells_new(2, y+1,3) = lbm_g.cells_new(1,y, 7);
+      
+      %periodic boundaries
+      lbm_g.cells_new(2, y, 4)     = lbm_g.cells_new(lbm_g.nx,y, 4);
+      lbm_g.cells_new(lbm_g.nx-1, y,8) = lbm_g.cells_new(1,y,8);
+      if (y>2)
+        lbm_g.cells_new(2, y, 3)     = lbm_g.cells_new(lbm_g.nx,y, 3);
+        lbm_g.cells_new(lbm_g.nx-1, y,9) = lbm_g.cells_new(1,y,9);
+      end
+      if (y<lbm_g.ny-1)
+        lbm_g.cells_new(2, y,5)     = lbm_g.cells_new(lbm_g.nx,y, 5);
+        lbm_g.cells_new(lbm_g.nx-1, y,7) = lbm_g.cells_new(1,y,7);
+      end
+    end
+
+
+    %copy  cells_new to cells
+    lbm_g.cells(:,:,:) = lbm_g.cells_new(:,:,:);
+
   end
 
   % LBM plot
-  figure(2);
-  % subplot(1,2,1);
-  quiver(vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1)',...
-   vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],2)');
+
+  figure(4)
+  hold off
+  plot(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2),[1:lbm_g.ny-2],'ro-');
+  hold on
+  plot(([lbm_g.lidVel(1):lbm_g.lidVel(1):1]-.5*lbm_g.lidVel(1))*lbm_g.lidVel(1),[1:lbm_g.ny-2],'b-');
+  title('abs(velocity) at x-center');
+  legend({'LBM','analytic'},'Location','SouthEast')
+
+  %Velocity
+ % figure(2);
+ % % subplot(1,2,1);
+ % quiver(vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1)',...
+ %  vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],2)');
   % subplot(1,2,2);
+  %Density
   figure(3);
   contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
+  title('Density');
   colorbar;
 
   % "remove" ghost layers

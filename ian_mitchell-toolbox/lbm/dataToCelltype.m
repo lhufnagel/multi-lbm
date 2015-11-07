@@ -10,5 +10,5 @@ type = 1.5 - 0.5*sign(type);
 % Hence, normals generated from the gradient of data will always point towards the 1's!
 
 % "Adding" Ghost layers here! Limited to 2D..
-type = [type(:,end), type, type(:,1)];
-type = [type(1,:); type; type(end,:)];
+type = [type(:,1), type, type(:,end)];
+type = [type(end,:); type; type(1,:)];
