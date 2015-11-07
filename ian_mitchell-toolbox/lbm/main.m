@@ -7,7 +7,7 @@ nargin = 0;
 %   g            Grid structure on which data was computed.
 %   data0        Implicit surface function at t_0.
 
-t_end = .1; % [s]
+t_end = 10; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
@@ -17,7 +17,7 @@ lidVel = 1; % [m/s]
 visc(1)  = 5e-2;% [m^2/s] % Oben im Line-Testcase, muss kleinere Viskosität haben als die untere Schicht, sonst sinnlos
 visc(2)  = 2e-1;% [m^2/s]
 sigma = 0.016; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
-lbm_it = 10; % Number of iterations until level-set update
+lbm_it = 500; % Number of iterations until level-set update
 % Diese Zahl sollte mMn folgendermaßen beschränkt sein:
 % Delta_T = lbm_it * lbm_g.dt ist das Zeitinterval, in dem sich Level-Set und LBM abwechseln.
 % Die maximale Geschwindigkeit in der Lid-Driven-Cavity ist lidVel (wenn man starke Krümmungseffekte und daraus folgende große Oberflächenspannungen an kleinen Blasen ignoriert).
@@ -417,7 +417,8 @@ while(tMax - tNow > small * tMax)
                   mu_average = (mu_2 + mu_1)*0.5;
                   mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
 
-                  p_jump = 1/(3*lbm_g.dx^2) * ( rho(x+lbm_g.c(1,k),y+lbm_g.c(2,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) - rho(x,y)*rho_phys(celltype(x,y)));    % Auf S. 1147 beschrieben
+                  %p_jump = 1/(3*lbm_g.dx^2) * ( rho(x+lbm_g.c(1,k),y+lbm_g.c(2,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) - rho(x,y)*rho_phys(celltype(x,y)));    % Auf S. 1147 beschrieben
+                  p_jump = 0;%1/3 * ( rho(x+lbm_g.c(1,k),y+lbm_g.c(2,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) - rho(x,y)*rho_phys(celltype(x,y)));    % Auf S. 1147 beschrieben
 
 
 
@@ -432,8 +433,8 @@ while(tMax - tNow > small * tMax)
                   Lambda_times_S_2 = trace(Lambda_i*S_2');
 
                   %% add_term2 = R_i
-                  Lambda_times_A = -q*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
-                  add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
+                  Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
+                  add_term2 = 2.5*6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
 
                   %if (add_term2 > 1e-5)
                   %  add_term2
@@ -532,8 +533,10 @@ while(tMax - tNow > small * tMax)
     [a2 * ([lbm_g.lidVel(1) : lbm_g.lidVel(1) : separator_y] -.5*lbm_g.lidVel(1)),...
      (a1 * ([lbm_g.lidVel(1)*ceil(separator_y/lbm_g.lidVel(1)) : lbm_g.lidVel(1) : 1]-.5*lbm_g.lidVel(1))) + offset],...
     [1:lbm_g.ny-2],'b-');
+  
+  plot(([lbm_g.lidVel(1):lbm_g.lidVel(1):1]-.5*lbm_g.lidVel(1))*lbm_g.lidVel(1),[1:lbm_g.ny-2],'g-');
   title('abs(velocity) at x-center');
-  legend({'LBM','analytic'},'Location','SouthEast')
+  legend({'LBM','analytic','analytic single phase'},'Location','SouthEast')
 
   %Velocity
   figure(2);
