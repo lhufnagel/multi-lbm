@@ -1,4 +1,4 @@
-%clear;
+clear;
 nargin = 0;
 %
 % Code based on convectionDemo
@@ -7,7 +7,7 @@ nargin = 0;
 %   g            Grid structure on which data was computed.
 %   data0        Implicit surface function at t_0.
 
-t_end = 10; % [s]
+t_end = 5; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
@@ -15,7 +15,7 @@ rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltz
 rho_phys(2) = 1; % [kg/m^3] % 
 lidVel = 1; % [m/s]
 visc(1)  = 5e-2;% [m^2/s] % Oben im Line-Testcase, muss kleinere Viskosität haben als die untere Schicht, sonst sinnlos
-visc(2)  = 2e-1;% [m^2/s]
+visc(2)  = 5e-1;% [m^2/s]
 sigma = 0.016; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
 lbm_it = 500; % Number of iterations until level-set update
 % Diese Zahl sollte mMn folgendermaßen beschränkt sein:
@@ -31,7 +31,7 @@ lbm_g.dx=0.02/x_len; % [m]
 lbm_g.dt=lbm_g.dx^2; % [s] 
 lbm_g.c_s=sqrt(1/3); % [m/s]
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
-lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2); %TODO bound von unten: arXiv:0812.3242v2 letzter Absatz 1/1.8 = 0.555
+lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2); %TODO ? bound von unten: arXiv:0812.3242v2 letzter Absatz 1/1.8 = 0.555
 lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 lbm_g.nx = x_len/lbm_g.dx + 2; %Ghost layer
 lbm_g.ny = y_len/lbm_g.dx + 2; %Ghost layer
@@ -67,7 +67,7 @@ pauseAfterPlot = 0;
 % Delete previous plot before showing next?
 deleteLastPlot = 0;
 % Plot in separate subplots (set deleteLastPlot = 0 in this case)?
-useSubplots = 1;
+useSubplots = 0;
 
 %---------------------------------------------------------------------------
 % Use periodic boundary conditions?
@@ -120,7 +120,7 @@ switch(testcase)
         data = sqrt(data) - radius;
     case 'line'
         % Trennlinie bei x2 = 0.45 (Bisschen unterhalb der Mitte des Grids)
-        separator_y = 0.75;
+        separator_y = 0.347;
         data = g.xs{2} - separator_y;
     otherwise
         error('Testcase does not exist: %s', testcase);
@@ -433,8 +433,8 @@ while(tMax - tNow > small * tMax)
                   Lambda_times_S_2 = trace(Lambda_i*S_2');
 
                   %% add_term2 = R_i
-                  Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
-                  add_term2 = 2.5*6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
+                  Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - 2*(q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
+                  add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
 
                   %if (add_term2 > 1e-5)
                   %  add_term2
@@ -531,12 +531,17 @@ while(tMax - tNow > small * tMax)
   plot(...
     lbm_g.lidVel(1) *...
     [a2 * ([lbm_g.lidVel(1) : lbm_g.lidVel(1) : separator_y] -.5*lbm_g.lidVel(1)),...
-     (a1 * ([lbm_g.lidVel(1)*ceil(separator_y/lbm_g.lidVel(1)) : lbm_g.lidVel(1) : 1]-.5*lbm_g.lidVel(1))) + offset],...
+    (a1 * ([lbm_g.lidVel(1)*ceil(separator_y/lbm_g.lidVel(1)) : lbm_g.lidVel(1) : 1]-.5*lbm_g.lidVel(1))) + offset],...
     [1:lbm_g.ny-2],'b-');
-  
+
   plot(([lbm_g.lidVel(1):lbm_g.lidVel(1):1]-.5*lbm_g.lidVel(1))*lbm_g.lidVel(1),[1:lbm_g.ny-2],'g-');
   title('abs(velocity) at x-center');
   legend({'LBM','analytic','analytic single phase'},'Location','SouthEast')
+
+  err = norm(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2)-...
+    (lbm_g.lidVel(1) *...
+    [a2 * ([lbm_g.lidVel(1) : lbm_g.lidVel(1) : separator_y] -.5*lbm_g.lidVel(1)),...
+     (a1 * ([lbm_g.lidVel(1)*ceil(separator_y/lbm_g.lidVel(1)) : lbm_g.lidVel(1) : 1]-.5*lbm_g.lidVel(1))) + offset]))
 
   %Velocity
   figure(2);
