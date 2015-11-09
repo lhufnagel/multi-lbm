@@ -7,7 +7,7 @@ nargin = 0;
 %   g            Grid structure on which data was computed.
 %   data0        Implicit surface function at t_0.
 
-t_end = 5; % [s]
+t_end = 10; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
@@ -24,6 +24,8 @@ lbm_it = 500; % Number of iterations until level-set update
 % Da ich möchte, dass sich das Interface MAXIMAL eine Zelle weit bewegt pro Delta_T (CFL-Bedingung, außerdem geht sonst der Refill-Algorithmus kaputt),
 % muss lidVel * Delta_T = lidVel * lbm_it * lbm_g.dt < lbm_g.dx sein!
 
+err_vek = [];
+
 lbm_g=Grid;
 lbm_g.dx=0.02/x_len; % [m]
 
@@ -31,8 +33,13 @@ lbm_g.dx=0.02/x_len; % [m]
 lbm_g.dt=lbm_g.dx^2; % [s] 
 lbm_g.c_s=sqrt(1/3); % [m/s]
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
-lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2); %TODO ? bound von unten: arXiv:0812.3242v2 letzter Absatz 1/1.8 = 0.555
+lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2); 
 lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
+
+%TODO ? bound von unten: arXiv:0812.3242v2 letzter Absatz 1/1.8 = 0.555
+if (min(lbm_g.omega) < 0.5) 
+  disp('WARNING: viscosity too big; interface handling instable!');
+end
 lbm_g.nx = x_len/lbm_g.dx + 2; %Ghost layer
 lbm_g.ny = y_len/lbm_g.dx + 2; %Ghost layer
 
@@ -120,7 +127,7 @@ switch(testcase)
         data = sqrt(data) - radius;
     case 'line'
         % Trennlinie bei x2 = 0.45 (Bisschen unterhalb der Mitte des Grids)
-        separator_y = 0.347;
+        separator_y = 0.447;
         data = g.xs{2} - separator_y;
     otherwise
         error('Testcase does not exist: %s', testcase);
@@ -351,7 +358,8 @@ while(tMax - tNow > small * tMax)
     curvature = [curvature(end,:); curvature; curvature(1,:)];
 
     for x=1:lbm_g.nx
-        for y = 1:lbm_g.ny
+        %for y = 1:lbm_g.ny
+        for y = [ceil(separator_y/lbm_g.dx):ceil(separator_y/lbm_g.dx)+2]
               for k = 2:9
 
                   if x+lbm_g.c(1,k) < 1 || x+lbm_g.c(1,k) > g.N(1)+2 || y+lbm_g.c(2,k) < 1 || y+lbm_g.c(2,k) > g.N(2)+2  %TODO evtl anpassen
@@ -433,13 +441,32 @@ while(tMax - tNow > small * tMax)
                   Lambda_times_S_2 = trace(Lambda_i*S_2');
 
                   %% add_term2 = R_i
-                  Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - 2*(q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
+                  %Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - 2*(q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
+
+                  % Fehler schwankt:
+                  % - stark mit mu1/mu2, relativ und absolut, aber LBM konvergiert
+                  % - Nicht mit x bzw. y, bzw. nur schwach
+                  % - aber q?
+                  % - p_jump..
+
+
+                  Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
                   add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
 
                   %if (add_term2 > 1e-5)
                   %  add_term2
                   %end
+                  
+                  %err =   9.7678e-04 % T =5, sep = 0.347, nu1=5e-2, nu2=5e-1
 
+                  %err = 0.0038 T =5, sep = 0.647, nu1=5e-2, nu2=5e-1
+                  %(Fehler war vorher schon kleiner, geschwindigkeit ist wieder langsamer geworden?!)
+
+                  %Scheinbar doch kein Vorfaktor vor Lambda*S(2) nötig!
+                  %err = 0.0038 T =10, sep = 0.847, nu1=5e-2, nu2=5e-1
+                  %err = 0.0057, ysep = 0.447;
+                  
+                  
                                                                                     % | 
                   %% do it                                                          % V pre-stream value!
                   lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k), lbm_g.invDir(k)) = lbm_g.cells(x,y,k) - add_term1 + add_term2;  
@@ -501,12 +528,6 @@ while(tMax - tNow > small * tMax)
     lbm_g.cells_new(lbm_g.nx, 2:lbm_g.ny-1, :)     = lbm_g.cells_new(2,2:lbm_g.ny-1, :);
     lbm_g.cells_new(1, 2:lbm_g.ny-1, :)  = lbm_g.cells_new(lbm_g.nx-1,2:lbm_g.ny-1, :);
 
-   %if (mod(t,10)==0)
-   %  norm(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2)-([lbm_g.lidVel(1):lbm_g.lidVel(1):1]-.5*lbm_g.lidVel(1))*lbm_g.lidVel(1))
-   %end
-    
-
-
     %copy  cells_new to cells
     lbm_g.cells(:,:,:) = lbm_g.cells_new(:,:,:);
 
@@ -530,8 +551,8 @@ while(tMax - tNow > small * tMax)
 
   plot(...
     lbm_g.lidVel(1) *...
-    [a2 * ([lbm_g.lidVel(1) : lbm_g.lidVel(1) : separator_y] -.5*lbm_g.lidVel(1)),...
-    (a1 * ([lbm_g.lidVel(1)*ceil(separator_y/lbm_g.lidVel(1)) : lbm_g.lidVel(1) : 1]-.5*lbm_g.lidVel(1))) + offset],...
+    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*floor(separator_y/lbm_g.dx)] -.5*lbm_g.dx),...
+     (a1 * ([lbm_g.dx*ceil(separator_y/lbm_g.dx) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset],...
     [1:lbm_g.ny-2],'b-');
 
   plot(([lbm_g.lidVel(1):lbm_g.lidVel(1):1]-.5*lbm_g.lidVel(1))*lbm_g.lidVel(1),[1:lbm_g.ny-2],'g-');
@@ -540,8 +561,14 @@ while(tMax - tNow > small * tMax)
 
   err = norm(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2)-...
     (lbm_g.lidVel(1) *...
-    [a2 * ([lbm_g.lidVel(1) : lbm_g.lidVel(1) : separator_y] -.5*lbm_g.lidVel(1)),...
-     (a1 * ([lbm_g.lidVel(1)*ceil(separator_y/lbm_g.lidVel(1)) : lbm_g.lidVel(1) : 1]-.5*lbm_g.lidVel(1))) + offset]))
+    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*floor(separator_y/lbm_g.dx)] -.5*lbm_g.dx),...
+     (a1 * ([lbm_g.dx*ceil(separator_y/lbm_g.dx) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset]))
+
+
+  err_vek = [err_vek, err];
+  figure(5)
+  plot(err_vek);
+  title(['Error-Norm over Delta T (:=' num2str(lbm_it) ' LBM-Iterations)']);
 
   %Velocity
   figure(2);
