@@ -51,7 +51,9 @@
 \author
 {Lorenz Hufnagel, Daniel Zint\\
 Chair for System-Simulation, Friedrich Alexander Univerit\"at Erlangen-N\"urnberg\\
-91058 Erlangen, Germany % ist das so richtig?
+Cauerstr. 11, 91058 Erlangen, Germany\\
+lorenz.hufnagel@studium.uni-erlangen.de\\
+daniel.zint@fau.de % ist das so richtig?
 }
 
 \begin{document}
@@ -113,7 +115,9 @@ For the interface $\Gamma$ we have the influence of the surface tension and we a
 	[u] = 0 \text{,  } [T]n = 2 \sigma \kappa n \text{.}
 	\label{jumpconditions}
 \end{equation}
-Here, T is the stress tensor, $\sigma$ the surface tension, and $\kappa$ the curvature of the interface with respect to its normal $n$. Brackets denote the jump of a quantity at the interface: $[q](x) = \lim_{\epsilon \rightarrow 0} (q(x + \epsilon n) - (q(x - \epsilon n)) \text{ with } x \in \Gamma$.
+Here, T is the stress tensor, $\sigma$ the surface tension, and $\kappa$ the curvature of the interface with respect to its normal $n$. Brackets denote the jump of a quantity at the interface: 
+$[q](x) = \lim_{\epsilon \rightarrow 0} (q(x - \epsilon n) - (q(x + \epsilon n)) \text{ with } x \in \Gamma$ % I also turned this around, according to [p].
+. In Fig. \ref{intro_phases} this would be the jump from $\Omega_1$ to $\Omega_2$. For the other direction the sign changes.
 
 There are different approaches to solve the immiscible two-phase problem. The most spread among these approaches is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore there are free surface methods which only take one fluid in account for computation (\cite{Koerner}). They work best for big density and viscosity differences.
 
@@ -125,9 +129,9 @@ This paper is organized as follows: Section 2 gives an introduction to the numer
 The algorithm uses two numerical methods. Before we show how these can be coupled, we will shortly introduce the numerical methods independently.
 
 \subsection{The Lattice Boltzmann Method}
-To solve the incompressible Navier-Stokes equations, we use the lattice Boltzmann method. This method describes the evolution of the particle density $f(x,v,t)$ in phase space, with a $(x,v)$ as the phase space variables and $t$ as time. The LBM algorithm discretizes with a regular grid in space and with restricted number of velocities adapted to this grid \cite{LBM1,LBM2,LBM3,LBM4}. We use the D2Q9 model in 2D, which has 9 velocity vectors on a plane grid with unit spacing including one zero velocity (Fig. \ref{lbmc_i}). 
+To solve the incompressible Navier-Stokes equations, we use the lattice Boltzmann method. This method describes the evolution of the particle density $f(\vec{x},\vec{v},t)$ in phase space, with a $(\vec{x},\vec{v})$ as the phase space variables and $t$ as time. The LBM algorithm discretizes with a regular grid in space and with restricted number of velocities adapted to this grid \cite{LBM1,LBM2,LBM3,LBM4}. We use the D2Q9 model in 2D, which has 9 velocity vectors on a plane grid with unit spacing including one zero velocity (Fig. \ref{lbmc_i}). 
 \begin{figure}
-	\hfill\includegraphics[width=6cm,natwidth=352,natheight=352]{LBMc_i.png}\hspace*{\fill}
+	\hfill\includegraphics[width=6cm,natwidth=403,natheight=409]{LBMc_i.png}\hspace*{\fill}
 	\caption{The vectors of one cell in LBM}
 	\label{lbmc_i}
 \end{figure}
@@ -140,18 +144,18 @@ The vectors are given by the columns of the matrix
 	\end{bmatrix}
 	\text{.}
 \end{equation}
-The corresponding particle distributions are denoted by $f_i(x,t) = f(x,c_i,t)$. We can get the density and velocity from the particle distribution functions by calculating:
+The corresponding particle distributions are denoted by $f_i(\vec{x},t) = f(\vec{x},\vec{c_i},t)$. We get the density and velocity from the particle distribution functions with:
 \begin{equation}
-	\rho(x,t) = \sum_{i=0}^{8} f_i(x,t) \text{, } 
-	u = \sum_{i=0}^{8} f_i(x,t)c_i \text{.}
+	\rho(\vec{x},t) = \sum_{i=0}^{8} f_i(\vec{x},t) \text{, } 
+	\vec{u} = \sum_{i=0}^{8} f_i(\vec{x},t)\vec{c_i} \text{.}
 \end{equation}
 For the collision step we use the Bhatnagar-Gross-Krook (BGK) approximation \cite{BGK}
 \begin{equation}
-	f_i(x+c_i,t+1) = f_i(x,t) - \frac1\tau(f_i-f_i^{eq}) + G_i \text{.}
+	f_i(\vec{x}+\vec{c_i},t+1) = f_i(\vec{x},t) - \frac1\tau(f_i-f_i^{eq}) + G_i \text{.}
 \end{equation}
-The parameter $\tau$ is the relaxation parameter for the BGK collision operator and controls the kinematic viscosity $\nu = \frac16(2\tau - 1)$. Furthermore, we use the equilibrium distribution
+The parameter $\tau$ is the relaxation parameter for the BGK collision operator and controls the kinematic viscosity $\nu = \frac16(2\tau - 1)$. $G_i$ is an additional force like gravity or a magnetic field. In our case we set $G_i = 0$. Furthermore, we use the equilibrium distribution
 \begin{equation}
-	f_i^{eq}(f) = f_i^*(\rho + 3c_i \cdot u + \frac92(c_i \cdot u)^2 - \frac32u^2)
+	f_i^{eq}(\rho,\vec{u}) = f_i^*(\rho + 3\vec{c_i} \cdot \vec{u} + \frac92(\vec{c_i} \cdot \vec{u})^2 - \frac32{|\vec{u}|}^2)
 \end{equation}
 with the corresponding D2Q9 weight factors
 $$
@@ -161,8 +165,8 @@ $$
 The LBM algorithm consists out of the following steps:
 \begin{itemize}
 	\item[1. ] Collision step: $f_i^+ = f_i - \frac1\tau(f_i - f_i ^{eq}) + G_i$
-	\item[2. ] Propagation step: $f_i(x+c_i,t+1) = f_i^+(x,t)$, for interior nodes
-	\item[3. ] Boundary conditions: $f_i(x+c_i,t+1) = f_i(x+c_i,t)$, if $x \notin \Omega$
+	\item[2. ] Propagation step: $f_i(\vec{x}+\vec{c_i},t+1) = f_i^+(x,t)$, for interior nodes
+	\item[3. ] Boundary conditions: $f_i(\vec{x}+\vec{c_i},t+1) = f_i(\vec{x}+\vec{c_i},t)$, if $\vec{x} \notin \Omega$
 \end{itemize}
 
 \subsection{The Level Set Method}
@@ -174,11 +178,17 @@ Let $\Gamma_t$ be our interface at time t. Within the level set method, $\Gamma_
 \end{equation}
 with the velocity $v = v(x(t)) = \dot x(t)$ for $x(t) \in \Gamma_t$.
 
-To solve this equation we use the Toolbox of Ian Mitchell \cite{mitchell}. This toolbox takes as input the velocity field we get from the lattice Boltzmann method and computes the movement of the interface. The toolbox also provides functions to calculate the normal and the curvature of the surface. We will need this informations for the coupling of the methods.
+To solve this equation we use the Toolbox of Ian Mitchell \cite{mitchell} for Matlab. This toolbox takes as input the velocity field we get from the lattice Boltzmann method and computes the movement of the interface. The toolbox also provides functions to calculate the normal and the curvature of the surface. We will need this informations for the coupling of the methods.
 
 \subsection{Coupling of LBM and level set method}
-The lattice Boltzmann method requires a boundary treatment at the interface which implements the jump conditions (\ref{jumpconditions}). We use a new boundary condition that is based on a simple bounce back type Dirichlet condition. For example, in Fig. \ref{intro_phases} for a point $x_2 \in \Omega_2$ that is next to the boundary we set
-% TODO: zweites Bild einfügen mit x_1, x_2 und c_i
+The lattice Boltzmann method requires a boundary treatment at the interface which implements the jump conditions (\ref{jumpconditions}). For sake of simplicity, we don't write arrows for every vector, i.e. $\vec{u} \rightarrow u$. One should consider that every position, direction, and velocity is two-dimensional. 
+
+For the coupling, we create a new boundary condition that is based on a simple bounce back type Dirichlet condition. For example, in Fig. \ref{coupling} for a point $x_2 \in \Omega_2$ that is next to the boundary we set
+\begin{figure}
+	\hfill\includegraphics[width=10cm,natwidth=437,natheight=178]{coupling.png}\hspace*{\fill}
+	\caption{link between two points in different fluids}
+	\label{coupling}
+\end{figure}
 \begin{equation}
 	f_i(x_2,t+1) = f_{i*}^+(x_2,t) + 6hf_i^*c_i \cdot \tilde{u} + R_i \text{.}
 \end{equation}
@@ -196,35 +206,39 @@ We can rewrite the formula in the form
 \end{equation}
 with
 \begin{equation}
-	S_k = -\frac{3}{2\tau h^2} \sum_i c_i \otimes c_i(f_i-f_i^{eq})(t,x_k) \text{,}
+\Lambda_i = c_i \otimes c_i - \frac13 {|c_i|}^2 \mathbf{I} \text{,}
 \end{equation}
 \begin{equation}
-	\Lambda_i:[S] = ([S]:n \otimes n)((n \cdot c_i)^2 - {|c_i|}^2/3) + 2([S]:n \otimes t_k)(n \cdot c_i)(t_k \cdot c_i) \text{.}
+	S_k = -\frac{3}{2\tau h^2} \sum_i c_i \otimes c_i(f_i-f_i^{eq})(t,x_k) \text{.}
 \end{equation}
-For the calculation we use
+The tensor product is $a \otimes b = ab^T$ and the double contraction $A:B = \mathrm{trace}(AB^T)$. Furthermore, we have
+\begin{equation}
+	\Lambda_i:[S] = ([S]:n \otimes n)((n \cdot c_i)^2 - {|c_i|}^2/3) + 2([S]:n \otimes t_k)(n \cdot c_i)(t_k \cdot c_i) \text{,}
+\end{equation}
+with the terms
 \begin{equation}
 	[S]:n \otimes n =  \frac{1}{2 \bar\mu} ([p] + 2 \sigma \kappa) - \frac{[\mu]}{\bar{\mu}} \bar{S} : n \otimes n \text{,}
 \end{equation}
 \begin{equation}
 	[S]:n \otimes t_k = - \frac{[\mu]}{\bar{\mu}} \bar{S} : n \otimes t_k \text{.}
 \end{equation}
-Here $n$ is the normal of the interface, $t$ the tangential, $\kappa$ the curvature, and $\mu$ the dynamic viscosity.
+Here $n$ is the normal of the interface, $t$ the tangential, $\bar{S} = (S_1 + S_2)/2$ the averaged symmetric velocity gradient, $\kappa$ the curvature, and $\mu$ the dynamic viscosity, with $[\mu] = \mu_2 - \mu_1$ as its jump.
 The pressure jump is formulated by
 \begin{equation}
-	[p] \approx \frac{1}{3 h^2} (\rho(x_1,t)\varrho_1 - \rho(x_2,t)\varrho_2) \text{.}
+	[p] \approx \frac{1}{3 h^2} (\rho(x_2,t)\varrho_2 - \rho(x_1,t)\varrho_1) \text{.}
 \end{equation}
-We use now the information of the level set method for the new boundary condition. What is still missing, is a refill method. Due to the fact that the interface moves, some cells change their fluid type. We use an equilibrium/non-equilibrium refill as it is described in \cite{Caiazzo} that consists out of four steps:
+What is still missing, is a refill method. Due to the fact that the interface moves, some cells change their fluid type. We use an equilibrium/non-equilibrium refill as it is described in \cite{Caiazzo} that consists out of four steps:
 \begin{itemize}
 	\item[1] Interpolate density and velocity from interior neighbors
 	\item[2] Compute the corresponding equilibrium
 	\item[3] Copy the non-equilibrium part from a direct interior neighbor
 	\item[4] Reinitialise by adding equilibrium and non-equilibrium parts
 \end{itemize}
-Suppose we choose an inward pointing direction $c_i$ in a boundary point $x = x_b \in \Omega_1$, e.g. the direction of biggest angle with the surface normal. Then the density is interpolated by
+Suppose we choose an inward pointing direction $c_i$ in a boundary point $x \in \Omega_1$, e.g. the direction of biggest angle with the surface normal. Then the density is interpolated by
 \begin{equation}
 	\tilde{\rho} = 3\rho(x+c_i,t+1) - 3\rho(x+2c_i,t+1) + \rho(x+3c_i,t+1) \text{.}
 \end{equation}
-\begin{figure}[h]
+\begin{figure}
 	\hfill\includegraphics[width=8cm,natwidth=445,natheight=305]{refillmethod.png}\hspace*{\fill}
 	\caption{Cells that are used for the refill method}
 	\label{refill}
@@ -233,14 +247,16 @@ Figure \ref{refill} shows the cells we use for the interpolation. In \cite{Thoem
 \begin{equation}
 \tilde{u} = 3u(x+c_i,t+1) - 3u(x+2c_i,t+1) + u(x+3c_i,t+1) \text{.}
 \end{equation}
-We can now calculate the new equilibrium $f_i^{eq}(\tilde{\rho},\tilde{u})$ and add it to the non-equilibrium part that we copy from the direct neighbor, $f_i^{neq}(x+c_i,t+1)$.
-The same procedure has also to be applied in the second fluid $\Omega_2$.
-\begin{figure}[h]
+We can now calculate the new equilibrium $f_i^{eq}(\tilde{\rho},\tilde{u})$ and add it to the non-equilibrium part that we copy from the direct neighbor:
+$$f_i(\vec{x},t+1) = f_i^{eq}(\tilde{\rho},\tilde{u}) + f_i^{neq}(x+c_i,t+1) \text{.}$$
+We have to repeat the procedure for other fluid.
+\begin{figure}
 	\hfill\includegraphics[width=8cm,natwidth=632,natheight=562]{dataexchange.png}\hspace*{\fill}
 	\caption{Data exchange between LBM and level set method}
 	\label{dataexchange}
 \end{figure}
-Finally we couple the two methods in the following way:
+
+Finally, we can couple the two methods in the following way:
 \begin{itemize}
 	\item[1.] Create the initial interface $\Gamma_0$
 	\item[2.] Run the level set code once to create the surface description for LBM
