@@ -7,17 +7,17 @@ nargin = 0;
 %   g            Grid structure on which data was computed.
 %   data0        Implicit surface function at t_0.
 
-t_end = 100; % [s]
+t_end = 500; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
             % To obtain physical value we multiply by physical density, see e.g. formula for pressure jump, page 1147
 rho_phys(2) = 1; % [kg/m^3] % 
-lidVel = .1; % [m/s]
-visc(1)  = 5e-1;% [m^2/s] % Oben im Line-Testcase, muss kleinere Viskosität haben als die untere Schicht, sonst sinnlos
-visc(2)  = 3e-1;% [m^2/s]
+lidVel = .01; % [m/s]
+visc(1)  = 2e-3;% [m^2/s] 
+visc(2)  = 8e-2;% [m^2/s]
 sigma = 1.6e-4; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
-lbm_it = 50; % Number of iterations until level-set update
+lbm_it = 100; % Number of iterations until level-set update
 % Diese Zahl sollte mMn folgendermaßen beschränkt sein:
 % Delta_T = lbm_it * lbm_g.dt ist das Zeitinterval, in dem sich Level-Set und LBM abwechseln.
 % Die maximale Geschwindigkeit in der Lid-Driven-Cavity ist lidVel (wenn man starke Krümmungseffekte und daraus folgende große Oberflächenspannungen an kleinen Blasen ignoriert).
@@ -25,16 +25,17 @@ lbm_it = 50; % Number of iterations until level-set update
 % muss lidVel * Delta_T = lidVel * lbm_it * lbm_g.dt < lbm_g.dx sein!
 
 err_vek = [];
+mass_vek =[];
 
 lbm_g=Grid;
 lbm_g.dx=0.05/x_len; % [m]
 
-lbm_g.dt=0.01;% [s] 
+lbm_g.dt=0.2;% [s] 
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
 lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2); 
 lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 
-if (max(lbm_g.omega) > 1.7 || min(lbm_g.omega) < 0.6)  %%TODO abklären? bound von unten: arXiv:0812.3242v2 letzter Absatz 1/1.8 = 0.555
+if (max(lbm_g.omega) > 1.7 || min(lbm_g.omega) < 0.5)  %%TODO abklären? bound von unten: arXiv:0812.3242v2 letzter Absatz 1/1.8 = 0.555
   disp('WARNING: omega out of range; interface handling maybe instable! Change dx, dt or viscosity');
 end
 
@@ -116,8 +117,7 @@ end
 %   be continuous across the boundary unless the circle is perfectly centered.
 %   In practice, we'll just ignore that little detail.
 
-testcase = 'circle';
-seperator_y = 0.42;
+testcase = 'line';
 
 switch(testcase)
     case 'circle'
@@ -294,7 +294,6 @@ while(tMax - tNow > small * tMax)
   end
     
 
-  rho_old = 0;
 
   %% LBM loop
   for t=1:lbm_it
@@ -496,71 +495,62 @@ while(tMax - tNow > small * tMax)
     %copy  cells_new to cells, -> swap old and new buffer
     lbm_g.cells(:,:,:) = lbm_g.cells_new(:,:,:);
 
-    %rho_sum = sum(sum(rho(2:lbm_g.nx-1,2:lbm_g.ny-1)));
-    %rho_sum - rho_old   %  >O(1e-10), es wird also irgendwo Masse erzeugt .... :-X ABER: Bekanntes Level-Set Artefakt, siehe Thoemmes Paper
-    %rho_old = rho_sum;
+    rho_sum = sum(sum(rho(2:lbm_g.nx-1,2:lbm_g.ny-1)));
+    %mass_vek = [mass_vek, rho_sum];
   end
 
   % LBM plot
-
-  figure(4)
-  hold off
-  plot(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2),[1:lbm_g.ny-2],'ro-');
-  hold on
-
-  a2 = 1/(visc(2)/visc(1) + seperator_y*(1-visc(2)/visc(1)));
-  a1 = visc(2)/visc(1) * a2;
-  offset = a2*seperator_y*(1-visc(2)/visc(1));
-
-  %plot(...
-  %  lbm_g.lidVel(1) *...
-  %  [a2 * [lbm_g.dx : lbm_g.dx :lbm_g.dx*floor((seperator_y-eps)/lbm_g.dx)],...
-  %   (a1 *[lbm_g.dx*ceil(seperator_y/lbm_g.dx) : lbm_g.dx : 1]) + offset],...
-  %  [1:lbm_g.ny-2],'b-');
-  plot(...
-    lbm_g.lidVel(1) *...
-    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*floor((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
-    (a1 * ([lbm_g.dx*ceil(seperator_y/lbm_g.dx) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset],...
-    [1:lbm_g.ny-2],'b-');
-
-  plot(([lbm_g.dx:lbm_g.dx:1]-.5*lbm_g.dx)*lbm_g.lidVel(1),[1:lbm_g.ny-2],'g-');
-  title('abs(velocity) at x-center column');
-  legend({'LBM','analytic','analytic single phase'},'Location','SouthEast')
-
-%  err_rel = norm( (sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2)-...
-%    (lbm_g.lidVel(1) *...
-%    [a2 * [lbm_g.dx : lbm_g.dx :lbm_g.dx*floor((seperator_y-eps)/lbm_g.dx)],...
-%     (a1 * [lbm_g.dx*ceil(seperator_y/lbm_g.dx) : lbm_g.dx : 1]) + offset]))...
-%     /(lbm_g.lidVel(1) *...
-%    [a2 * [lbm_g.dx : lbm_g.dx :lbm_g.dx*floor((seperator_y-eps)/lbm_g.dx)],...
-%     (a1 * [lbm_g.dx*ceil(seperator_y/lbm_g.dx) : lbm_g.dx : 1]) + offset]))
-
-  err_rel = norm( (sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2)-...
-    (lbm_g.lidVel(1) *...
-    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*floor((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
-     (a1 * ([lbm_g.dx*ceil(seperator_y/lbm_g.dx) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset]))...
-     /(lbm_g.lidVel(1) *...
-    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*floor((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
-     (a1 * ([lbm_g.dx*ceil(seperator_y/lbm_g.dx) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset]))
-     
-
-
-  err_vek = [err_vek, err_rel];
-  figure(5)
-  plot(err_vek);
-  title(['(Relative) Error in L_2-Norm over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
 
   %Velocity
   figure(2);
   subplot(1,2,1);
   quiver(vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1)',...
    vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],2)');
+  title('Velocity');
   subplot(1,2,2);
   %Density
-  %figure(3);
   contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
   title('Density');
   colorbar;
+
+ % Mass losses
+ % figure(3);
+ % plot(mass_vek/((lbm_g.nx-2)*(lbm_g.ny-2))-ones(size(mass_vek)));
+ % title(['\Delta Mass (relative) over iterations']);
+
+  %Error
+  figure(4)
+  hold off
+  plot(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2),[1:lbm_g.ny-2],'ro-');
+  hold on
+
+  a2 = (1+lbm_g.dx)/(visc(2)*rho_phys(2)/(visc(1)*rho_phys(1)) + seperator_y*(1-rho_phys(2)*visc(2)/(visc(1)*rho_phys(1))));
+  a1 = rho_phys(2)*visc(2)/(visc(1)*rho_phys(1)) * a2;
+  offset = a2*seperator_y*(1-visc(2)*rho_phys(2)/(visc(1)*rho_phys(1)))-lbm_g.dx;
+
+  plot(...
+    lbm_g.lidVel(1) *...
+    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*ceil((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
+    (a1 * ([lbm_g.dx*ceil(1+seperator_y/lbm_g.dx-eps) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset],...
+    [1:lbm_g.ny-2],'b-');
+
+  err_rel = norm( abs(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2)-...
+    (lbm_g.lidVel(1) *...
+    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*ceil((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
+    (a1 * ([lbm_g.dx*ceil(1+seperator_y/lbm_g.dx-eps) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset]))...
+     /(lbm_g.lidVel(1) *...
+    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*ceil((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
+    (a1 * ([lbm_g.dx*ceil(1+seperator_y/lbm_g.dx-eps) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset]))
+
+  err_vek = [err_vek, err_rel];
+  xlabel('Velocity [LU]');
+  ylabel('y, Cell index');
+  title('abs(velocity) at x-center column');
+  legend({'LBM','analytic'},'Location','SouthEast')
+
+  figure(5)
+  plot(err_vek);
+  title(['(Relative) Error in L_2-Norm over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
 
 
   celltype_old = celltype;
