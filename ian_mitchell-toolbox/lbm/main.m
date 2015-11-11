@@ -7,32 +7,42 @@ nargin = 0;
 %   g            Grid structure on which data was computed.
 %   data0        Implicit surface function at t_0.
 
-t_end = .4; % [s]
+t_end = 500; % [s]
 x_len = 1; % [m] Achtung! Scheint hardgecodet im Level-Set zu sein
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
             % To obtain physical value we multiply by physical density, see e.g. formula for pressure jump, page 1147
 rho_phys(2) = 1; % [kg/m^3] % 
-lidVel = 1; % [m/s]
-visc(1)  = 7.5e-1;% [m^2/s]
-visc(2)  = 7.5e-1;% [m^2/s]
-sigma = 0.0; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
-lbm_it = 20; % Number of iterations until level-set update
+lidVel = .01; % [m/s]
+visc(1)  = 2e-3;% [m^2/s] 
+visc(2)  = 8e-2;% [m^2/s]
+sigma = 1.6e-4; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
+lbm_it = 100; % Number of iterations until level-set update
 % Diese Zahl sollte mMn folgendermaßen beschränkt sein:
 % Delta_T = lbm_it * lbm_g.dt ist das Zeitinterval, in dem sich Level-Set und LBM abwechseln.
 % Die maximale Geschwindigkeit in der Lid-Driven-Cavity ist lidVel (wenn man starke Krümmungseffekte und daraus folgende große Oberflächenspannungen an kleinen Blasen ignoriert).
 % Da ich möchte, dass sich das Interface MAXIMAL eine Zelle weit bewegt pro Delta_T (CFL-Bedingung, außerdem geht sonst der Refill-Algorithmus kaputt),
 % muss lidVel * Delta_T = lidVel * lbm_it * lbm_g.dt < lbm_g.dx sein!
 
+err_vek = [];
+mass_vek =[];
+
 lbm_g=Grid;
-lbm_g.dx=0.02/x_len; % [m]
+lbm_g.dx=0.05/x_len; % [m]
 
-
-lbm_g.dt=lbm_g.dx^2; % [s] 
-lbm_g.c_s=sqrt(1/3); % [m/s]
+lbm_g.dt=0.2;% [s] 
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
-lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2);
+lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2); 
 lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
+
+if (max(lbm_g.omega) > 1.7 || min(lbm_g.omega) < 0.5)  %%TODO abklären? bound von unten: arXiv:0812.3242v2 letzter Absatz 1/1.8 = 0.555
+  disp('WARNING: omega out of range; interface handling maybe instable! Change dx, dt or viscosity');
+end
+
+if (max(abs(lbm_g.lidVel)) > 0.1)
+      disp('Warning: Top-Lid too fast, vel > 0.1 [LU]');
+end
+
 lbm_g.nx = x_len/lbm_g.dx + 2; %Ghost layer
 lbm_g.ny = y_len/lbm_g.dx + 2; %Ghost layer
 
@@ -65,9 +75,9 @@ level = 0;
 % Pause after each plot?
 pauseAfterPlot = 0;
 % Delete previous plot before showing next?
-deleteLastPlot = 0;
+deleteLastPlot = 1;
 % Plot in separate subplots (set deleteLastPlot = 0 in this case)?
-useSubplots = 1;
+useSubplots = 0;
 
 %---------------------------------------------------------------------------
 % Use periodic boundary conditions?
@@ -119,8 +129,9 @@ switch(testcase)
         end
         data = sqrt(data) - radius;
     case 'line'
-        % Trennlinie bei x2 = 0.45 (Bisschen unterhalb der Mitte des Grids)
-        data = g.xs{2} - 0.45;
+        % Horizontale Trennlinie
+        seperator_y = 0.42;
+        data = g.xs{2} - seperator_y;
     otherwise
         error('Testcase does not exist: %s', testcase);
 end
@@ -262,9 +273,9 @@ while(tMax - tNow > small * tMax)
     for j=1:9
       cTimesU = lbm_g.c(1,j) * vel_interp(1) + lbm_g.c(2,j) * vel_interp(2);
       equil(j) =  lbm_g.weights(j) .* (rho_interp + ...
-            1/(lbm_g.c_s^2) .* cTimesU + ...
-            1/(2*lbm_g.c_s^4) .* (cTimesU).^2 - ...
-            1/(2*lbm_g.c_s^2) .* (vel_interp(1).^2 + vel_interp(2).^2));
+            3 .* cTimesU + ...
+            9/2 .* (cTimesU).^2 - ...
+            3/2 .* (vel_interp(1).^2 + vel_interp(2).^2));
     end
 
     
@@ -273,9 +284,9 @@ while(tMax - tNow > small * tMax)
         cTimesU = lbm_g.c(1,j) * vel(x(i) + c_imax(1), y(i) + c_imax(2),1) + lbm_g.c(2,j) * vel(x(i) + c_imax(1), y(i) + c_imax(2),2);
         non_eq(j) = lbm_g.cells(x(i) + c_imax(1), y(i) + c_imax(2), j) - ...
                     lbm_g.weights(j) .* (rho(x(i) + c_imax(1), y(i) + c_imax(2)) + ...
-                    1/(lbm_g.c_s^2) .* cTimesU + ...
-                    1/(2*lbm_g.c_s^4) .* (cTimesU).^2 - ...
-                    1/(2*lbm_g.c_s^2) .* (vel(x(i) + c_imax(1), y(i) + c_imax(2),1).^2 + vel(x(i) + c_imax(1), y(i) + c_imax(2),2).^2));
+                    3 .* cTimesU + ...
+                    9/2 .* (cTimesU).^2 - ...
+                    3/2 .* (vel(x(i) + c_imax(1), y(i) + c_imax(2),1).^2 + vel(x(i) + c_imax(1), y(i) + c_imax(2),2).^2));
     end
 
     % 4. Reinitialise
@@ -283,13 +294,16 @@ while(tMax - tNow > small * tMax)
   end
     
 
+
   %% LBM loop
   for t=1:lbm_it
-
-
-    %lbm collide
+    % lBM collide
+    % and calculation of f_neq = f - f_eq
     rho = zeros(lbm_g.nx,lbm_g.ny);
     vel = zeros(lbm_g.nx,lbm_g.ny,2);
+    f_eq = zeros(lbm_g.nx,lbm_g.ny,9);
+    f_neq = zeros(lbm_g.nx,lbm_g.ny,9);
+
     for i=1:9
       rho(:,:) = rho(:,:) + lbm_g.cells(:,:,i);
       vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells(:,:,i);
@@ -298,36 +312,20 @@ while(tMax - tNow > small * tMax)
 
     for i=1:9
       cTimesU = lbm_g.c(1,i) * vel(:,:,1) + lbm_g.c(2,i) * vel(:,:,2);
-      lbm_g.cells(:,:,i) = lbm_g.cells(:,:,i) - lbm_g.omega(celltype(:,:)) .* (lbm_g.cells(:,:,i) - ...  
-          lbm_g.weights(i) .* (rho(:,:) + ...
-            1/(lbm_g.c_s^2) .* cTimesU(:,:) + ...
-            1/(2*lbm_g.c_s^4) .* (cTimesU(:,:)).^2 - ...
-            1/(2*lbm_g.c_s^2) .* (vel(:,:,1).^2 + vel(:,:,2).^2)));
+      f_eq(:,:,i) = lbm_g.weights(i) .* (rho(:,:) + ...
+          3 .* cTimesU(:,:) + ...
+          9/2 .* (cTimesU(:,:)).^2 - ...
+          3/2 .* (vel(:,:,1).^2 + vel(:,:,2).^2));
+
+      f_neq(:,:,i) = lbm_g.cells(:,:,i) - f_eq(:,:,i);
+          
+      lbm_g.cells(:,:,i) = lbm_g.cells(:,:,i) - lbm_g.omega(celltype(:,:)) .* (lbm_g.cells(:,:,i) - f_eq(:,:,i));
     end
 
     
-    %boundary handling for the interface
+    % boundary handling for the interface (PRE-Stream)
     
-    % calculation of diff_f = f - f_eq
-    rho = zeros(lbm_g.nx,lbm_g.ny); %lbm-Units!
-    vel = zeros(lbm_g.nx,lbm_g.ny,2); %lbm-Units!
-    for i=1:9
-      rho(:,:) = rho(:,:) + lbm_g.cells(:,:,i);
-      vel(:,:,1) = vel(:,:,1) + lbm_g.c(1,i) * lbm_g.cells(:,:,i);
-      vel(:,:,2) = vel(:,:,2) + lbm_g.c(2,i) * lbm_g.cells(:,:,i);
-    end
-    
-    diff_f = zeros(lbm_g.nx,lbm_g.ny,9);
-    for i = 1:9
-        cTimesU = lbm_g.c(1,i) * vel(:,:,1) + lbm_g.c(2,i) * vel(:,:,2);
-        diff_f(:,:,i) = lbm_g.cells(:,:,i) - ...
-                    lbm_g.weights(i) .* (rho(:,:) + ...
-                    1/(lbm_g.c_s^2) .* cTimesU(:,:) + ...
-                    1/(2*lbm_g.c_s^4) .* (cTimesU(:,:)).^2 - ...
-                    1/(2*lbm_g.c_s^2) .* (vel(:,:,1).^2 + vel(:,:,2).^2));
-    end
-    
-    % get first order derivative
+    % get first order derivative -> Surface normal
     deriv = zeros(lbm_g.nx-2,lbm_g.ny-2,2);
     [derivL,derivR] = upwindFirstENO3(g,data,1);
     deriv(:,:,1) = 0.5 * (derivL + derivR);
@@ -342,28 +340,26 @@ while(tMax - tNow > small * tMax)
     data = [data(:,1), data, data(:,end)];
     data = [data(end,:); data; data(1,:)];
 
-    for x=2:lbm_g.nx-1
-        for y = 2:lbm_g.ny-1
+    deriv = [deriv(:,1,:), deriv, deriv(:,end,:)];
+    deriv = [deriv(end,:,:); deriv; deriv(1,:,:)];
+
+    curvature = [curvature(:,1), curvature, curvature(:,end)];
+    curvature = [curvature(end,:); curvature; curvature(1,:)];
+
+    for x=1:lbm_g.nx
+        for y = 1:lbm_g.ny
               for k = 2:9
 
-                 % if x+lbm_g.c(1,k) < 1 || x+lbm_g.c(1,k) > g.N(1)+2 || y+lbm_g.c(2,k) < 1 || y+lbm_g.c(2,k) > g.N(2)+2  %TODO evtl anpassen
-                 %     continue
-                 % end
+                  if x+lbm_g.c(1,k) < 1 || x+lbm_g.c(1,k) > g.N(1)+2 || y+lbm_g.c(2,k) < 1 || y+lbm_g.c(2,k) > g.N(2)+2  %TODO evtl anpassen
+                      continue
+                  end
 
                   %Hier evtl die "isNearInterface(..)"-Funktion verwenden? (Doku S. 124)
                   if celltype(x,y) == celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))
                       continue
                   end
 
-                  %% get celltype-attributes
-                  omega = lbm_g.omega(celltype(x,y));
-                  omega_alt = lbm_g.omega(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k)));
-
-                  % mu = mass_dens * nu -> dynamic viscosity
-                  mu_2 = visc(celltype(x,y)) * rho_phys(celltype(x,y)); 
-                  mu_1 = visc(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k)));
-
-                  %% q
+                  % q
                   q = data(x+lbm_g.c(1,k), y+lbm_g.c(2,k))/(data(x+lbm_g.c(1,k), y+lbm_g.c(2,k)) - data(x,y)); 
                   % Die Liniensegmente vom "exakten" Inteface kriegt man mit contourc(g.xs{1}(:,1), g.xs{2}(1,:), data, [0 0]);
                   % Rückgabe-Format Doku: http://de.mathworks.com/help/matlab/ref/contour-properties.html#prop_ContourMatrix
@@ -375,8 +371,9 @@ while(tMax - tNow > small * tMax)
                   % Sonst wird hier q unsinnig berechnet(??)
 
                   %% add_term1
-                  vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),1) ; vel(x+lbm_g.c(1,k),y+lbm_g.c(2,k),2)];
-                  add_term1 = 6 *  lbm_g.weights(k) * lbm_g.c(:,k)' * vel_int; % 6 h f^*_i c_i u
+                  vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x + lbm_g.c(1,k), y+lbm_g.c(2,k), 1); vel(x  +lbm_g.c(1,k),y  +lbm_g.c(2,k),2)];
+                  add_term1 = 6*lbm_g.weights(k) * lbm_g.c(:,k)' * vel_int; % 6 f^*_i c_i u
+
                   %% S^(k)
                   % Bei der Vergabe der Indizes habe ich mich an das Paper gehalten
                   % 2: Der Punkt den wir betrachten
@@ -384,75 +381,87 @@ while(tMax - tNow > small * tMax)
                   S_2 = zeros(2);   % S^(2)
                   S_1 = zeros(2);   % S^(1)
                   for l = 1:9
-                      diff_f_2 = diff_f(x,y,l);
-                      diff_f_1 = diff_f(x+lbm_g.c(1,k),y+lbm_g.c(2,k),l);
-                      S_2 = S_2 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_2;
-                      S_1 = S_1 + lbm_g.c(:,l) * lbm_g.c(:,l)' * diff_f_1;
+                      f_neq_2 = f_neq(x,y,l);
+                      f_neq_1 = f_neq(x+lbm_g.c(1,k),y+lbm_g.c(2,k),l);
+                     %S_2 = S_2 + (lbm_g.c(:,l) * lbm_g.c(:,l)' - lbm_g.c(:,l)'*lbm_g.c(:,l)/2*eye(2))* f_neq_2; %Enforce traceless-ness. Does not seem to have any impact
+                     %S_1 = S_1 + (lbm_g.c(:,l) * lbm_g.c(:,l)' - lbm_g.c(:,l)'*lbm_g.c(:,l)/2*eye(2))* f_neq_1;
+                      S_2 = S_2 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_2;
+                      S_1 = S_1 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_1;
                   end
-                  S_2 = -1.5 * omega * (1/lbm_g.dx)^2 * S_2;
-                  S_1 = -1.5 * omega_alt * (1/lbm_g.dx)^2 * S_1;
+                  S_2 = -1.5 * lbm_g.omega(celltype(x,y)) * S_2;
+                  S_1 = -1.5 * lbm_g.omega(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) * S_1;
 
                   %% Lambda_i
                   Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - lbm_g.c(:,k)'*lbm_g.c(:,k)/2*eye(2);  % siehe S. 1143 oben
                   %% Lambda_i : [S] 
                   S_average = (S_2+S_1)*0.5;
                   % Normale, Tangente und Krümmung werden in der Toolbox bestimmt
-                  normal = (-1)^celltype(x,y) * [deriv(x-1,y-1,1);deriv(x-1,y-1,2)];
+                  normal = (-1)^celltype(x,y) * [deriv(x,y,1);deriv(x,y,2)];
                   normal = normal/norm(normal);        % normal n
                   tangent = [-normal(2);normal(1)];    % tangent t
-                  kappa = curvature(x-1,y-1);          % curvature
+                  kappa = curvature(x,y);          % curvature
 
+                  % mu = mass_dens * nu -> dynamic viscosity
+                  mu_2 = visc(celltype(x,y)) * rho_phys(celltype(x,y)); 
+                  mu_1 = visc(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k)));
                   mu_average = (mu_2 + mu_1)*0.5;
-                  mu_jump = mu_1 - mu_2;        % <-- Sieht gut aus. Muss man oben noch erweitern, dass mu1 und mu2 richtig gewaehlt werden
 
-                  p_jump = 1/(3*lbm_g.dx^2) * ( rho(x+lbm_g.c(1,k),y+lbm_g.c(2,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))) - rho(x,y)*rho_phys(celltype(x,y)));    % Auf S. 1147 beschrieben
+                  p_jump = 1/3 * (rho(x,y)*rho_phys(celltype(x,y)) - rho(x+lbm_g.c(1,k),y+lbm_g.c(2,k)) * rho_phys(celltype(x+lbm_g.c(1,k),y+lbm_g.c(2,k))));    
+                  % Auf S. 1147 beschrieben, !!! DORT MIT VORZEICHEN-FUCKING-FEHLER
+                  % SIEHE doi:10.1016/j.camwa.2009.02.005
 
-
+                  mu_jump = (mu_2 - mu_1);  % Auch so gewählt, dass außen von innen subtrahiert wird. Ist dann konsistent mit dem Pressure-Jump (mit Vorzeichen-fehler-korrektur! Siehe oben), läuft außerdem stabil (im Gegenteil zu andersrum subtrahiert)
 
                   % Zwischenergebnisse
                   S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal'));
-                  S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent'));
+                  S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
 
-                  Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (norm(lbm_g.c(:,k))^2)/2) + ...
+                  Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (lbm_g.c(:,k)'*lbm_g.c(:,k))/2) + ...
                       2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tangent'*lbm_g.c(:,k));
 
                   %% Lambda_i : S^(2)
                   Lambda_times_S_2 = trace(Lambda_i*S_2');
 
                   %% add_term2 = R_i
-                  Lambda_times_A = -q*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
-                  add_term2 = 6*lbm_g.dx^2*lbm_g.weights(k)*Lambda_times_A;   % R_i
+                  Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;   % Teilergebnis zur Berechnung von R_i
+                  add_term2 = 6*lbm_g.weights(k)*Lambda_times_A;   % R_i
 
-                                                                                    % | 
-                  %% do it                                                          % V pre-stream value!
-                  lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k), lbm_g.invDir(k)) = lbm_g.cells(x,y,k) - add_term1 - add_term2;  
-                                                                                                     % ^ Minus sign! Draw scenario on paper and note that c_i should be opposite direction
+                              % | Don't overwrite interface in opposite cell
+                  %% do it    % V Hence, copy cells_new to cells, after inteface-handling done forall cells
+                  lbm_g.cells_new(x+lbm_g.c(1,k),y+lbm_g.c(2,k), lbm_g.invDir(k)) = lbm_g.cells(x,y,k) - add_term1 + add_term2;  
+                                                                                                     % ^ Minus sign! Draw scenario on paper and note that c_i should be opposite direction (in our interpretation!)
                                                                                                      % | 
 
               end
         end
     end
+
+
+    if (max(abs(vel(:))) > 0.1)
+      disp('Warning: LBM may become instable, vel > 0.1 [LU]');
+    end
     
     data = [data([2:lbm_g.nx-1], [2:lbm_g.ny-1])];
+
     lbm_g.cells(:,:,:) = lbm_g.cells_new(:,:,:);
     
-    %lbm stream
+    % LBM stream
     for i=1:9 
         lbm_g.cells_new(:,:,i) = circshift(lbm_g.cells(:,:,i), [lbm_g.c(1,i),lbm_g.c(2,i),0]); 
     end
 
-    %lbm ugly boundary handling
+    % LBM  ugly (Domain) boundary handling
     for x=1:lbm_g.nx
       %north & South
       lbm_g.cells_new(x  , 2,2) = lbm_g.cells_new(x,1,6);
-      lbm_g.cells_new(x  , lbm_g.ny-1,6) = lbm_g.cells_new(x,lbm_g.ny,2) + 2/(lbm_g.c_s^2) * lbm_g.weights(2) * lbm_g.c(:,6)'*lbm_g.lidVel;
+      lbm_g.cells_new(x  , lbm_g.ny-1,6) = lbm_g.cells_new(x,lbm_g.ny,2) + 6 * lbm_g.weights(2) * lbm_g.c(:,6)'*lbm_g.lidVel;
       if (x<lbm_g.nx)
         lbm_g.cells_new(x+1, 2,3) = lbm_g.cells_new(x,1,7);
-        lbm_g.cells_new(x+1, lbm_g.ny-1,5) = lbm_g.cells_new(x,lbm_g.ny,9) + 2/(lbm_g.c_s^2) * lbm_g.weights(9) * lbm_g.c(:,5)'*lbm_g.lidVel;
+        lbm_g.cells_new(x+1, lbm_g.ny-1,5) = lbm_g.cells_new(x,lbm_g.ny,9) + 6 * lbm_g.weights(9) * lbm_g.c(:,5)'*lbm_g.lidVel;
       end
       if (x>1)
         lbm_g.cells_new(x-1, 2,9) = lbm_g.cells_new(x,1,5);
-        lbm_g.cells_new(x-1, lbm_g.ny-1,7) = lbm_g.cells_new(x,lbm_g.ny,3) + 2/(lbm_g.c_s^2) * lbm_g.weights(3) * lbm_g.c(:,7)'*lbm_g.lidVel;
+        lbm_g.cells_new(x-1, lbm_g.ny-1,7) = lbm_g.cells_new(x,lbm_g.ny,3) + 6 * lbm_g.weights(3) * lbm_g.c(:,7)'*lbm_g.lidVel;
       end
     end
 
@@ -480,38 +489,77 @@ while(tMax - tNow > small * tMax)
       end
     end
 
+    lbm_g.cells_new(lbm_g.nx, 2:lbm_g.ny-1, :)     = lbm_g.cells_new(2,2:lbm_g.ny-1, :);
+    lbm_g.cells_new(1, 2:lbm_g.ny-1, :)  = lbm_g.cells_new(lbm_g.nx-1,2:lbm_g.ny-1, :);
 
-    %copy  cells_new to cells
+    %copy  cells_new to cells, -> swap old and new buffer
     lbm_g.cells(:,:,:) = lbm_g.cells_new(:,:,:);
 
+    rho_sum = sum(sum(rho(2:lbm_g.nx-1,2:lbm_g.ny-1)));
+    %mass_vek = [mass_vek, rho_sum];
   end
 
   % LBM plot
 
-  figure(4)
-  hold off
-  plot(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2),[1:lbm_g.ny-2],'ro-');
-  hold on
-  plot(([lbm_g.lidVel(1):lbm_g.lidVel(1):1]-.5*lbm_g.lidVel(1))*lbm_g.lidVel(1),[1:lbm_g.ny-2],'b-');
-  title('abs(velocity) at x-center');
-  legend({'LBM','analytic'},'Location','SouthEast')
-
   %Velocity
- % figure(2);
- % % subplot(1,2,1);
- % quiver(vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1)',...
- %  vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],2)');
-  % subplot(1,2,2);
+  figure(2);
+  subplot(1,2,1);
+  quiver(vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],1)',...
+   vel([2:lbm_g.nx-1],[2:lbm_g.ny-1],2)');
+  title('Velocity');
+  subplot(1,2,2);
   %Density
-  figure(3);
   contourf(rho([2:lbm_g.nx-1],[2:lbm_g.ny-1])')
   title('Density');
   colorbar;
 
-  % "remove" ghost layers
+ % Mass losses
+ % figure(3);
+ % plot(mass_vek/((lbm_g.nx-2)*(lbm_g.ny-2))-ones(size(mass_vek)));
+ % title(['\Delta Mass (relative) over iterations']);
+
+  %Error
+  figure(4)
+  hold off
+  plot(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2),[1:lbm_g.ny-2],'ro-');
+  hold on
+
+  a2 = (1+lbm_g.dx)/(visc(2)*rho_phys(2)/(visc(1)*rho_phys(1)) + seperator_y*(1-rho_phys(2)*visc(2)/(visc(1)*rho_phys(1))));
+  a1 = rho_phys(2)*visc(2)/(visc(1)*rho_phys(1)) * a2;
+  offset = a2*seperator_y*(1-visc(2)*rho_phys(2)/(visc(1)*rho_phys(1)))-lbm_g.dx;
+
+  plot(...
+    lbm_g.lidVel(1) *...
+    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*ceil((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
+    (a1 * ([lbm_g.dx*ceil(1+seperator_y/lbm_g.dx-eps) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset],...
+    [1:lbm_g.ny-2],'b-');
+
+  err_rel = norm( abs(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2)-...
+    (lbm_g.lidVel(1) *...
+    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*ceil((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
+    (a1 * ([lbm_g.dx*ceil(1+seperator_y/lbm_g.dx-eps) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset]))...
+     /(lbm_g.lidVel(1) *...
+    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*ceil((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
+    (a1 * ([lbm_g.dx*ceil(1+seperator_y/lbm_g.dx-eps) : lbm_g.dx : 1]-.5*lbm_g.dx)) + offset]))
+
+  err_vek = [err_vek, err_rel];
+  xlabel('Velocity [LU]');
+  ylabel('y, Cell index');
+  title('abs(velocity) at x-center column');
+  legend({'LBM','analytic'},'Location','SouthEast')
+
+  figure(5)
+  plot(err_vek);
+  title(['(Relative) Error in L_2-Norm over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
+
 
   celltype_old = celltype;
+
+
+  % "remove" ghost layers
   schemeData.velocity = { lbm_g.dx/lbm_g.dt*vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 1); lbm_g.dx/lbm_g.dt*vel([2:lbm_g.nx-1], [2:lbm_g.ny-1], 2)};
+
+
   %% level set code
 
   
@@ -535,6 +583,7 @@ while(tMax - tNow > small * tMax)
   end
 
   % Get correct figure, and remember its current view.
+
   figure(f);
   [ figure_az, figure_el ] = view;
 
