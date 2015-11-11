@@ -13,11 +13,11 @@ y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % e.g. 1000 for Water, 1,2 for Air. In Lattice-Boltzmann-Units Cell-density is varying around 1. 
             % To obtain physical value we multiply by physical density, see e.g. formula for pressure jump, page 1147
 rho_phys(2) = 1; % [kg/m^3] % 
-lidVel = 5; % [m/s]
-visc(1)  = 3/6e-0;% [m^2/s] 
-visc(2)  = 3/6e-0;% [m^2/s]
-sigma = 0;%15e-7;%1.6e-4; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
-lbm_it = 50; % Number of iterations until level-set update
+lidVel = .01; % [m/s]
+visc(1)  = 2e-3;% [m^2/s] 
+visc(2)  = 8e-2;% [m^2/s]
+sigma = 1.6e-4; %0.016; % [N/m] surface tension. Material parameter between different fluids, e.g. ~ 76*10^-3 between water and air 
+lbm_it = 100; % Number of iterations until level-set update
 % Diese Zahl sollte mMn folgendermaßen beschränkt sein:
 % Delta_T = lbm_it * lbm_g.dt ist das Zeitinterval, in dem sich Level-Set und LBM abwechseln.
 % Die maximale Geschwindigkeit in der Lid-Driven-Cavity ist lidVel (wenn man starke Krümmungseffekte und daraus folgende große Oberflächenspannungen an kleinen Blasen ignoriert).
@@ -28,9 +28,9 @@ err_vek = [];
 mass_vek =[];
 
 lbm_g=Grid;
-lbm_g.dx=0.025/x_len; % [m]
+lbm_g.dx=0.05/x_len; % [m]
 
-lbm_g.dt=lbm_g.dx^2;% [s] 
+lbm_g.dt=0.2;% [s] 
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
 lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2); 
 lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
@@ -117,8 +117,7 @@ end
 %   be continuous across the boundary unless the circle is perfectly centered.
 %   In practice, we'll just ignore that little detail.
 
-testcase = 'circle';
-        seperator_y = 0.42;
+testcase = 'line';
 
 switch(testcase)
     case 'circle'
