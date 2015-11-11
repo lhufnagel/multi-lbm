@@ -87,7 +87,7 @@ The two-phase flow problem can be described with the Navier-Stokes equations for
 
 \begin{figure}[h!]
 	\flushright
-	\includegraphics[width=12cm,natwidth=1690,natheight=1174]{skizze.png}
+	\includegraphics[width=11cm,natwidth=1690,natheight=1174]{skizze.png}
 	\caption{Two fluid domains $\Omega_i$ and the interface $\Gamma$ in between}
 	\label{intro_phases}
 \end{figure}
@@ -131,7 +131,7 @@ This paper is organized as follows: Section 2 gives an introduction to the numer
 The algorithm uses two numerical methods. Before we show how these can be coupled, we will shortly introduce the numerical methods independently.
 
 \subsection{The Lattice Boltzmann Method}
-To solve the incompressible Navier-Stokes equations, we use the lattice Boltzmann method (\cite{Succi}). This method describes the evolution of the particle density $f(\vec{x},\vec{v},t)$ in phase space, with a $(\vec{x},\vec{v})$ as the phase space variables and $t$ as time. The LBM algorithm discretizes with a regular grid in space and with restricted number of velocities adapted to this grid \cite{LBM1,LBM2,LBM3,LBM4}. We use the D2Q9 model in 2D, which has 9 velocity vectors on a plane grid with unit spacing including one zero velocity (Fig. \ref{lbmc_i}). 
+To solve the incompressible Navier-Stokes equations, we use the lattice Boltzmann method. This method describes the evolution of the particle density $f(\vec{x},\vec{v},t)$ in phase space, with $(\vec{x},\vec{v})$ as the phase space variables and $t$ as time. The LBM algorithm discretizes with a regular grid in space and with restricted number of velocities adapted to this grid \cite{LBM1,LBM2,LBM3,LBM4}. We use the D2Q9 model in 2D, which has 9 velocity vectors on a plane grid with unit spacing including one zero velocity (Fig. \ref{lbmc_i}). 
 \begin{figure}
 	\hfill\includegraphics[width=6cm,natwidth=403,natheight=409]{LBMc_i.png}\hspace*{\fill}
 	\caption{The vectors of one cell in LBM}
@@ -164,7 +164,7 @@ $$
 f_i^* = \begin{cases} \frac49 \text{,} & i = 0 \\ \frac19 \text{,} & i = 1,3,5,7 \\ \frac{1}{36} \text{,} &  i = 2,4,6,8 \end{cases} \text{.}
 $$
 
-The LBM algorithm consists out of the following steps:
+One time step in the LBM algorithm is achieved by the following sub-steps:
 \begin{itemize}
 	\item[1. ] Collision step: $f_i^+ = f_i - \frac1\tau(f_i - f_i ^{eq}) + G_i$
 	\item[2. ] Propagation step: $f_i(\vec{x}+\vec{c_i},t+1) = f_i^+(x,t)$, for interior nodes
@@ -251,8 +251,8 @@ Suppose we choose an inward pointing direction $c_i$ in a boundary point $x \in 
 	\caption{Cells that are used for the refill method}
 	\label{refill}
 \end{figure}
-Figure \ref{refill} shows the cells we use for the interpolation. In \cite{Thoemmes} the velocity is interpolated by using the velocity of the interface. The Ian-Mitchell toolbox does not provide a function to access this value. %TODO das ist misverständlich.
-Therefore, we interpolate the velocity in the same way as we did for the density:
+Figure \ref{refill} shows the cells we use for the interpolation. In \cite{Thoemmes} the velocity is interpolated by using the velocity of the interface. The Ian-Mitchell toolbox does not provide a function to access this value.  %TODO das ist misverständlich.
+Therefore, we follow the formula given in \cite{Lallemand} that is basically the same we use for density:
 \begin{equation}
   \tilde{u}(x) = 3u(x+c_i,t+1) - 3u(x+2c_i,t+1) + u(x+3c_i,t+1) \text{.}
 \end{equation}
@@ -274,8 +274,25 @@ Finally, we can couple the two methods in the following way:
 	\item[5.] Repeat step 3 and 4 until the end of the simulation.
 \end{itemize}
 
-\section{something new what we did / Results}
-Present our test case (I think one would be enough) and describe the parameters we have studied. Give graphs that show their impact on accuracy.
+\section{Results and Examples}
+To verify the correctness of our implementation we firstly created a Couette flow and compared our results with the one we get from the analytic solution. Secondly, we used the same LBM setup but with a different fluid distribution to check the behavior of our implementation for more complex problems.
+
+\subsection{Couette channel flow}
+The Couette channel flow consists of a fixed lower wall at $y=0$ and an upper wall at $y=1$ that is moving with a constant velocity. At these walls we use no-slip boundary conditions. To create a channel flow, we use periodic boundary conditions for the boundaries at the inflow $x=0$ and the outflow $x=1$. The two fluids are distributed in a way that the interface is parallel to our walls.
+%TODO: give information about the parameter
+%TODO: show graph with results
+
+For the Couette channel flow exists an analytic solution that can be derived from the Navier-Stokes equations
+$$
+v(x) = \begin{cases} v_0 (\frac{\mu_1}{\mu_1+\mu_2}x + \frac{\mu_2}{\mu_1+\mu_2}) \text{,} & x \ge 0 \\ v_0 (\frac{\mu_2}{\mu_1+\mu_2}x + \frac{\mu_2}{\mu_1+\mu_2}) \text{,} & x < 0 \text{,}\end{cases}
+$$
+where $\mu_1$ denotes the dynamic viscosity in the lower fluid and $\mu_2$ the viscosity in upper fluid.
+
+\subsection{Bubble tracing}
+To verify the correctness of our implementation also for more complex problems, we changed the fluid distribution in our Couette channel flow such that one fluid is a bubble within the other fluid. We set all material parameters of the fluids to the same values. Thus one would expect that we get the same flow field as for only a single fluid and the interface merely serves as a tracer. FIGURE ?? shows how the bubble that is initialized as circle changes to an elliptic shape caused by the flow field within the channel.
+
+%TODO: name the settings we used
+%TODO: add some nice pictures
 
 \section{Conclusion}
 
@@ -315,6 +332,8 @@ Mitchell, Ian, A Toolbox of Level Set Methods
 \bibitem{Caiazzo} {\sc A. Caiazzo}, {\em Asymptotic analysis of lattice Boltzmann method for fluid-structure interaction problems}, Ph.D. Thesis, Kaiserslautern (Germany) and Pisa (Italy), 2007
 
 \bibitem{Krueger} {\sc T. Kr\"uger, F. Varnik, D. Raabe}, {\em Shear stress in lattice Boltzmann simulations}, Phys. Rev. E 79 (4) (2009) 046704
+
+\bibitem{Lallemand} {\sc P. Lallemand, L.-S. Luo}, {\em Lattice Boltzmann method for moving boundaries}, J. Comput. Phys. 184 (2003) 406-421
 
 \end{thebibliography}
 
