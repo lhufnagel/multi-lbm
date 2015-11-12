@@ -62,7 +62,7 @@ daniel.zint@fau.de % ist das so richtig?
 \slugger{siads}{xxxx}{xx}{x}{x--x}}%slugger should be set to juq, siads, sifin, or siims
 
 \begin{abstract}
-	We implemented the lattice Boltzmann method for immiscible multiphase flow simulations and combined it with the level set method according to the paper of G. Th\"ommes \cite{Thoemmes}. The level set method is used to calculate the movement of the interface between the two phases. The input for the level set method is computed by the lattice Boltzmann method. We reimplemented the test cases that are mentioned in the paper, to study the method-coupling and its impact on accuracy.
+	We implemented the lattice Boltzmann method for immiscible multiphase flow simulations and combined it with the level set method according to the paper of G. Th\"ommes et al. \cite{Thoemmes}. The level set method is used to calculate the movement of the interface between the two phases. The input for the level set method is computed by the lattice Boltzmann method. We verified our implementation with different test cases.
 \end{abstract}
 
 \begin{keywords}
@@ -83,16 +83,18 @@ daniel.zint@fau.de % ist das so richtig?
 %Something about the two-phase problem and some other algorithms that solve it. We could do this according to the presentation-slides.
 In engineering the immiscible two-phase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors. Also fingering in oil recovery is a common two-phase problem.
 
-The two-phase flow problem can be described with the Navier-Stokes equations for two incompressible fluids. To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface (Fig. \ref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus the material properties are discontinuous and the fluids won't mix.
+The two-phase flow problem can be described with the Navier-Stokes equations for two incompressible fluids. 
+%TODO: Hier fehlen Referenzen! ausserdem muessen noch die Gleichungen unten gelabelt werden!!!
+To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface (Fig. \ref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus the material properties are discontinuous and the fluids will not mix.
 
 \begin{figure}[h!]
 	\flushright
 	\includegraphics[width=11cm,natwidth=1690,natheight=1174]{skizze.png}
-	\caption{Two fluid domains $\Omega_i$ and the interface $\Gamma$ in between}
+	\caption{Two fluid domains $\Omega_i$ separated by an interface.}
 	\label{intro_phases}
 \end{figure}
 
-The evolution of the flow fields within each fluid can be expressed with the incompressible Navier-Stokes equations:
+The evolution of the flow fields within each fluid can be expressed with the incompressible Navier-Stokes equations
 \begin{equation}
 	\nabla \cdot  \vec u_i = 0 \text{  in } \Omega_i \text{,}
 \end{equation}
@@ -103,29 +105,30 @@ The evolution of the flow fields within each fluid can be expressed with the inc
 \end{equation}
 Here, $u_i$ is the velocity, $p_i$ the pressure, $\nu_i$ the kinematic viscosity and $\varrho_i$ the mass density.
 
-Furthermore, we need boundary conditions and initial conditions. For our domain-boundaries and the interior we can take for example
-\begin{equation}
-	\vec u_i(x,t) = 0 \text{, on } \delta\Omega_i \backslash \Gamma \text{,}
-\end{equation}
-\begin{equation}
+As boundary conditions and initial conditions we can take for example
+\begin{align}
+	\vec u_i(x,t) = 0 \text{, on } \delta\Omega_i \backslash \Gamma \text{,} \\
 	\vec u_i(x,0) = \vec u_{ini,i}(x) \text{, in } \Omega_i \text{.}
-\end{equation}
-For the interface $\Gamma$ we have the influence of the surface tension and a no-slip condition, i.e. continuity of the velocities between the fluid phases. Therefore, we get the following jump conditions:
-\begin{equation}
-	[\vec u] = 0 \text{,  } [T] \cdot \vec n = 2 \sigma \kappa \vec n \text{.}
+\end{align}
+For the interface $\Gamma$ we have the influence of the surface tension and a no-slip condition, i.e. continuity of the velocities between the fluid phases. Therefore, we get the jump conditions
+\begin{align}
+	[\vec u] = 0 \text{,  } \\
+	[T] \cdot \vec n = 2 \sigma \kappa \vec n \text{.}
 	\label{jumpconditions}
+\end{align}
+Here, T is the shear stress tensor, $\sigma$ the surface tension, and $\kappa$ the curvature of the interface with respect to its outer normal $\vec n$. Brackets denote the jump of a quantity at the interface, 
+\begin{equation}
+	[q](\vec x) = \lim_{\epsilon \rightarrow 0} (q(\vec x - \epsilon \vec n) - (q(\vec x + \epsilon \vec n)) \text{ with } \vec x \in \Gamma. % I also turned this around, according to [p].
 \end{equation}
-Here, T is the shear stress tensor, $\sigma$ the surface tension, and $\kappa$ the curvature of the interface with respect to its outer normal $\vec n$. Brackets denote the jump of a quantity at the interface: 
-$[q](\vec x) = \lim_{\epsilon \rightarrow 0} (q(\vec x - \epsilon \vec n) - (q(\vec x + \epsilon \vec n)) \text{ with } \vec x \in \Gamma$ % I also turned this around, according to [p].
-. In Fig. \ref{intro_phases} this would be the jump from $\Omega_1$ to $\Omega_2$. For the other direction the sign changes.
+In Fig. \ref{intro_phases} this is the jump from $\Omega_1$ to $\Omega_2$. For the other direction the sign changes.
 
-There are different approaches to solve the immiscible two-phase problem. The most spread among these approaches is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore there are free surface methods which only take one fluid in account for computation (\cite{Koerner}). They work best for big density and viscosity differences.
+There are different approaches to solve the immiscible two-phase problem. The most spread among these approaches is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore there are free surface methods which only take one fluid in account for computation (\cite{Koerner}). They work best for big density and viscosity ratios.
 
-The method we are presenting uses a hybrid lattice Boltzmann level set method. Thereby the interface motion is calculated by the level set method. The input data for the level set method is given by the lattice Boltzmann method, which is calculated independently for each fluid. This method has the advantage that it allows for big ranges of density and viscosity ratios between the fluid phases 
+In this publication we use a hybrid lattice Boltzmann level set method. Thereby the interface motion is calculated by the level set method. The input data for the level set method is given by the lattice Boltzmann method, which is calculated independently for each fluid. This method has the advantage that it allows for big ranges of density and viscosity ratios between the fluid phases 
 and has a high accuracy but requires only little memory %TODO das ist zu unscharf, glaube ich
 .
 
-This paper is organized as follows: Section 2 gives an introduction to the numerical methods and the coupling of these. In section 3 we present our results and finally in section 4 we draw a conclusion.
+This paper is organized as follows: Section 2 gives an introduction to the lattice Boltzmann method and the level set method and explains the coupling of these. In section 3 we present our results and finally in section 4 we draw a conclusion.
 
 \section{Numerical Methods}
 The algorithm uses two numerical methods. Before we show how these can be coupled, we will shortly introduce the numerical methods independently.
@@ -186,7 +189,7 @@ To solve this equation we use the Toolbox of Ian Mitchell \cite{mitchell} for Ma
 \subsection{Coupling of LBM and level set method}
 The lattice Boltzmann method requires a boundary treatment at the interface which implements the jump conditions (\ref{jumpconditions}). For sake of simplicity, we don't write arrows for every vector, i.e. $\vec{u} \rightarrow u$. One should consider that every position, direction, and velocity is two-dimensional. 
 
-For the coupling, we create a new boundary condition that is based on a bounce back type condition, that prescribes the velocity as  Dirichlet value. For example, in Fig. \ref{coupling} for a point $x_2 \in \Omega_2$ that is next to the phase interface we set
+For the coupling, we use a bounce back type boundary condition that prescribes the velocity as  Dirichlet value. For example, in Fig. \ref{coupling} for a point $x_2 \in \Omega_2$ that is next to the phase interface we set
 \begin{figure}
 	\hfill\includegraphics[width=10cm,natwidth=437,natheight=178]{coupling.png}\hspace*{\fill}
 	\caption{link between two points in different fluids}
@@ -199,7 +202,7 @@ Here, $\tilde{u}$ describes the linear interpolation of the velocity along the d
 $$
 \tilde{u} = qu(x_2,t) + (1-q)u(x_1,t) \text{.}
 $$
-The additional term $R_i$ ensures the jump conditions of the normal stress and corrects the error terms that is introduced by the first order accurate bounce back treatment. $R_i$ is given as:
+The additional term $R_i$ ensures the jump conditions of the normal stress and corrects the error terms that is introduced by the first order accurate bounce back treatment,
 \begin{equation}
 	R_i = 6 f_i^* \Lambda_i : A \text{ with } A = -q(1-q)[S] - (q - \frac12)S^{(2)} \text{, }
   \label{add_term2}
@@ -220,15 +223,13 @@ and use the following first-order estimate to obtain the shear rate from the non
 Furthermore, we have
 \begin{equation}
   \Lambda_i:[S] = ([S]:n \otimes n)((n \cdot c_i)^2 - \frac12 (c_i \cdot c_i)) + 2([S]:n \otimes t)(n \cdot c_i)(t \cdot c_i) \text{,}
+  \label{Lambda_iTimes_S}
 \end{equation}
-which is obtained by a coordinate transformation onto a basis $(n, t)$ of normal and tangential vector to the interface. From the fluid mechanical jump condition (\ref{jumpconditions}) and the relation $[\mu S] = \bar{\mu}[S] + [\mu]\bar{S} $ it can be seen:
-\begin{equation}
-	[S]:n \otimes n =  \frac{1}{2 \bar\mu} ([p] + 2 \sigma \kappa) - \frac{[\mu]}{\bar{\mu}} \bar{S} : n \otimes n \text{,}
-\end{equation}
-and
-\begin{equation}
+which is obtained by a coordinate transformation onto a basis $(n, t)$ of normal and tangential vector to the interface. From the fluid mechanical jump condition (\ref{jumpconditions}) and the relation $[\mu S] = \bar{\mu}[S] + [\mu]\bar{S} $ it can be seen,
+\begin{align}
+	[S]:n \otimes n =  \frac{1}{2 \bar\mu} ([p] + 2 \sigma \kappa) - \frac{[\mu]}{\bar{\mu}} \bar{S} : n \otimes n \text{,} \\
 	[S]:n \otimes t = - \frac{[\mu]}{\bar{\mu}} \bar{S} : n \otimes t \text{.}
-\end{equation}
+\end{align}
 Here $\mu_k = \varrho_k \nu_k$ are the dynamic viscosities, with $\bar{\mu} = (\mu_1 + \mu_2)/2$ and $\bar{S} = (S_1 + S_2)/2$ as averaged quantities, $\kappa$ the interface curvature, and the visocity jump  $[\mu] = \mu_2 - \mu_1$.
 The pressure jump is approximated by
 \begin{equation}
@@ -252,11 +253,11 @@ Suppose we choose an inward pointing direction $c_i$ in a boundary point $x \in 
 	\label{refill}
 \end{figure}
 Figure \ref{refill} shows the cells we use for the interpolation. In \cite{Thoemmes} the velocity is interpolated by using the velocity of the interface. The Ian-Mitchell toolbox does not provide a function to access this value.  %TODO das ist misverständlich.
-Therefore, we follow the formula given in \cite{Lallemand} that is basically the same we use for density:
+Therefore, we follow the formula given in \cite{Lallemand} that is basically the same we use for density,
 \begin{equation}
   \tilde{u}(x) = 3u(x+c_i,t+1) - 3u(x+2c_i,t+1) + u(x+3c_i,t+1) \text{.}
 \end{equation}
-We can now calculate the new equilibrium part of the particle densities in $x$, $f_i^{eq}(\tilde{\rho},\tilde{u})$ and add them to the non-equilibrium part which we copy from a nearest neighbor:
+We can now calculate the new equilibrium part of the particle densities in $x$, $f_i^{eq}(\tilde{\rho},\tilde{u})$ and add them to the non-equilibrium part which we copy from a nearest neighbor,
 $$f_i(\vec{x},t+1) = f_i^{eq}(\tilde{\rho},\tilde{u}) + f_i^{neq}(x+c_i,t+1) \text{.}$$
 This completes the refill algorithm.
 
@@ -275,10 +276,10 @@ Finally, we can couple the two methods in the following way:
 \end{itemize}
 
 \section{Results and Examples}
-To verify the correctness of our implementation we firstly created a Couette flow and compared our results with the one we get from the analytic solution. Secondly, we used the same LBM setup but with a different fluid distribution to check the behavior of our implementation for more complex problems.
+To verify the correctness of our implementation we firstly built a Couette flow and compared our results with the one we get from the analytic solution. Secondly, we used the Young-Laplace experiment for a bubble to validate the implementation of surface tension.
 
 \subsection{Couette channel flow}
-The Couette channel flow consists of a fixed lower wall at $y=0$ and an upper wall at $y=1$ that is moving with a constant velocity. At these walls we use no-slip boundary conditions. To create a channel flow, we use periodic boundary conditions for the boundaries at the inflow $x=0$ and the outflow $x=1$. The two fluids are distributed in a way that the interface is parallel to our walls.
+The Couette channel flow consists of a fixed lower wall at $y=0$ and an upper wall at $y=1$ that is moving with a constant velocity. At these walls we use no-slip boundary conditions. To generate a channel flow, we use periodic boundary conditions for the boundaries at the inflow $x=0$ and the outflow $x=1$. The two fluids are distributed in a way that the interface is parallel to our walls.
 %TODO: give information about the parameter
 %TODO: show graph with results
 
@@ -288,8 +289,12 @@ v(x) = \begin{cases} v_0 (\frac{\mu_1}{\mu_1+\mu_2}x + \frac{\mu_2}{\mu_1+\mu_2}
 $$
 where $\mu_1$ denotes the dynamic viscosity in the lower fluid and $\mu_2$ the viscosity in upper fluid.
 
-\subsection{Bubble tracing}
-To verify the correctness of our implementation also for more complex problems, we changed the fluid distribution in our Couette channel flow such that one fluid is a bubble within the other fluid. We set all material parameters of the fluids to the same values. Thus one would expect that we get the same flow field as for only a single fluid and the interface merely serves as a tracer. FIGURE ?? shows how the bubble that is initialized as circle changes to an elliptic shape caused by the flow field within the channel.
+\subsection{Young-Laplace experiment for a bubble}
+The Couette-Flow is not influenced by surface tension due to the fact that the surface tension is multiplied with the curvature in Equation \ref{Lambda_iTimes_S} and the curvature is zero in the Couette-Flow. We use the Young-Laplace experiment to validate the implementation of surface tension. The pressure $p$ inside a bubble of radius $r$ is proportional to the surface tension coefficient $\sigma$ according to the Young-Laplace law
+\begin{equation}
+	p = \frac{2\sigma}{r} = 2 \sigma \kappa .
+\end{equation}
+
 
 %TODO: name the settings we used
 %TODO: add some nice pictures
