@@ -5,7 +5,6 @@ classdef Grid
     nx
     ny
     omega % Use 2-dim-Vector.... a little ugly
-    c_s
     lidVel % die gibt es nur einmal
     cells
     cells_new
