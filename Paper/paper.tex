@@ -83,8 +83,8 @@ daniel.zint@fau.de % ist das so richtig?
 %Something about the two-phase problem and some other algorithms that solve it. We could do this according to the presentation-slides.
 In engineering the immiscible two-phase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors. Also fingering in oil recovery is a common two-phase problem.
 
-The two-phase flow problem can be described with the Navier-Stokes equations for two incompressible fluids. 
-%TODO Regina: Hier fehlen Referenzen! ausserdem muessen noch die Gleichungen unten gelabelt werden!!!
+The two-phase flow problem can be described with the Navier-Stokes equations for two incompressible fluids (Eq. \ref{nse1}, \ref{nse2}). 
+%TODO Regina: Hier fehlen Referenzen!
 To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface (Fig. \ref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus the material properties are discontinuous and the fluids will not mix.
 
 \begin{figure}[h!]
@@ -95,27 +95,27 @@ To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega
 \end{figure}
 
 The evolution of the flow fields within each fluid can be expressed with the incompressible Navier-Stokes equations,
-\begin{equation}
+\begin{gather}
 	\nabla \cdot  \vec u_i = 0 \text{  in } \Omega_i \text{,}
-\end{equation}
-\begin{equation}
-\frac{\partial \vec u_i}{\partial t} + \left(\vec  u_i\cdot \nabla \right) \vec u_i
-=
--\frac{1}{\varrho_i}\nabla p_i + \nu_i \nabla^2 \vec u_i \text{  in } \Omega_i \text{.}
-\end{equation}
+	\label{nse1} \\
+	\frac{\partial \vec u_i}{\partial t} + \left(\vec  u_i\cdot \nabla \right) \vec u_i
+	=
+	-\frac{1}{\varrho_i}\nabla p_i + \nu_i \nabla^2 \vec u_i \text{  in } \Omega_i \text{.}
+	\label{nse2}
+\end{gather}
 Here, $u_i$ is the velocity, $p_i$ the pressure, $\nu_i$ the kinematic viscosity and $\varrho_i$ the mass density.
 
 As boundary conditions and initial conditions we can take for example,
-\begin{align}
+\begin{gather}
 	\vec u_i(x,t) = 0 \text{, on } \delta\Omega_i \backslash \Gamma \text{,} \\
 	\vec u_i(x,0) = \vec u_{ini,i}(x) \text{, in } \Omega_i \text{.}
-\end{align}
+\end{gather}
 For the interface $\Gamma$ we have the influence of the surface tension and a no-slip condition, i.e. continuity of the velocities between the fluid phases. Therefore, we get the jump conditions,
-\begin{align}
+\begin{gather}
 	[\vec u] = 0 \text{,  } \\
 	[T] \cdot \vec n = 2 \sigma \kappa \vec n \text{.}
 	\label{jumpconditions}
-\end{align}
+\end{gather}
 Here, T is the shear stress tensor, $\sigma$ the surface tension, and $\kappa$ the curvature of the interface with respect to its outer normal $\vec n$. Brackets denote the jump of a quantity at the interface, 
 \begin{equation}
 	[q](\vec x) = \lim_{\epsilon \rightarrow 0} (q(\vec x - \epsilon \vec n) - (q(\vec x + \epsilon \vec n)) \text{ with } \vec x \in \Gamma. % I also turned this around, according to [p].
@@ -123,6 +123,7 @@ Here, T is the shear stress tensor, $\sigma$ the surface tension, and $\kappa$ t
 In Fig. \ref{intro_phases} this is the jump from $\Omega_1$ to $\Omega_2$. For the other direction the sign changes.
 
 There are different approaches to solve the immiscible two-phase problem. The most spread among these approaches is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore there are free surface methods which only take one fluid in account for computation (\cite{Koerner}). They work best for big density and viscosity ratios.
+%TODO: Mehr Referenzen, siehe Mail
 
 In this publication we use a hybrid lattice Boltzmann level set method. Thereby the interface motion is calculated by the level set method. The input data for the level set method is given by the lattice Boltzmann method, which is calculated independently for each fluid. This method has the advantage that it allows for big ranges of density and viscosity ratios between the fluid phases 
 and has a high accuracy but requires only little memory %TODO das ist zu unscharf, glaube ich
@@ -134,7 +135,7 @@ This paper is organized as follows: Section 2 gives an introduction to the latti
 The algorithm we describe in this paper uses the lattice Boltzmann method and the level set method. With the lattice Boltzmann method we calculate the velocity field for each fluid independently. The level set method uses this velocity field to compute the movement of the interface. We will shortly introduce both methods and show how they can be coupled.
 
 \subsection{The Lattice Boltzmann Method}
-To solve the incompressible Navier-Stokes equations, we use the lattice Boltzmann method. This method describes the evolution of the particle density $f(\vec{x},\vec{v},t)$ in phase space, with $(\vec{x},\vec{v})$ as the phase space variables and $t$ as time. The LBM algorithm discretizes with a regular grid in space and with restricted number of velocities adapted to this grid \cite{LBM1,LBM2,LBM3,LBM4}. We use the D2Q9 model in 2D, which has 9 velocity vectors on a plane grid with unit spacing including one zero velocity (Fig. \ref{lbmc_i}). 
+To solve the incompressible Navier-Stokes equations, we use the lattice Boltzmann method (LBM). This method describes the evolution of the particle density $f(\vec{x},\vec{v},t)$ in phase space, with $(\vec{x},\vec{v})$ as the phase space variables and $t$ as time. The LBM algorithm discretizes with a regular grid in space and with restricted number of velocities adapted to this grid \cite{LBM1,LBM2,LBM3,LBM4}. We use the D2Q9 model in 2D, which has 9 velocity vectors on a plane grid with unit spacing including one zero velocity (Fig. \ref{lbmc_i}). 
 %TODO Regina: Man kann auch Cref benutzen zum Zitieren
 \begin{figure}
 	\hfill\includegraphics[width=6cm,natwidth=403,natheight=409]{LBMc_i.png}\hspace*{\fill}
@@ -155,9 +156,14 @@ The corresponding particle distributions are denoted by $f_i(\vec{x},t) = f(\vec
 	\rho(\vec{x},t) = \sum_{i=1}^{9} f_i(\vec{x},t) \text{, } \quad
 	\vec{u} = \sum_{i=1}^{9} f_i(\vec{x},t)\vec{c_i} \text{.}
 \end{equation}
-For the collision step we use the Bhatnagar-Gross-Krook (BGK) approximation \cite{BGK}
+
+In the interior, the LBM alternates collision step and propagation step. For the collision step we use the Bhatnagar-Gross-Krook (BGK) approximation \cite{BGK},
 \begin{equation}
-	f_i(\vec{x}+\vec{c_i},t+1) = f_i(\vec{x},t) - \frac1\tau(f_i-f_i^{eq}) + G_i \text{.}
+	f_i^+(\vec{x}+\vec{c_i},t+1) = f_i(\vec{x},t) - \frac1\tau(f_i-f_i^{eq}) + G_i \text{.}
+\end{equation}
+The propagation step is denoted by,
+\begin{equation}
+	f_i(\vec{x}+\vec{c_i},t+1) = f_i^+(\vec{x},t+1).
 \end{equation}
 The parameter $\tau$ is the relaxation parameter for the BGK collision operator and controls the kinematic viscosity in lattice units $\nu = \frac16(2\tau - 1)$. Note, that we assume the cell spacing $\Delta x$ and the time step $\Delta t$ to be unity here. The lattice speed of sound equals to $c_s =\frac{1}{\sqrt{3}}$. $G_i$ is an additional force, e.g. gravity. In our case we set $G_i = 0$. Furthermore, we use the equilibrium distribution,
 \begin{equation}
@@ -168,14 +174,27 @@ $$
 f_i^* = \begin{cases} \frac49 \text{,} & i = 0 \\ \frac19 \text{,} & i = 1,3,5,7 \\ \frac{1}{36} \text{,} &  i = 2,4,6,8 \end{cases} \text{.}
 $$
 
+%Boundary Conditions: Bounce-back & moving no-slip & inflow-outflow
+We use two types of boundary conditions. To simulate static walls, we use simple bounce-back boundary conditions,
+\begin{equation}
+	\tilde{f_i} = f_{i^*}^+(\vec{x_b},t) \text{, with } \vec{x_b} \in \delta\Omega \text{,}
+\end{equation}
+where $i^*$ is the index of the opposite direction $c_{i^*} = -c_i$. To simulate a flow, we use moving no-slip boundary conditions,
+\begin{equation}
+	\tilde{f_i} = f_{i^*}^+(\vec{x_b},t) + 6 f_i^*\vec{c_i} \vec{v} \text{, with } \vec{x_b} \in \delta\Omega,
+\end{equation}
+where $\vec{v}$ is the speed of the moving wall. To enable inflow and outflow of fluids we have periodic boundary conditions,
+\begin{equation}
+	\tilde{f_i}(\vec{x_a},t) = f_i^+(\vec{x_b},t) \text{,}
+\end{equation}
+where $x_a$ and $x_b$ are points of opposite boundaries.
+
 One time step in the LBM algorithm is achieved by the following sub-steps:
 \begin{itemize}
 	\item[1. ] Collision step: $f_i^+ = f_i - \frac1\tau(f_i - f_i ^{eq}) + G_i$
 	\item[2. ] Propagation step: $f_i(\vec{x}+\vec{c_i},t+1) = f_i^+(x,t)$, for interior nodes
 	\item[3. ] Boundary conditions: $f_i(\vec{x}+\vec{c_i},t+1) = f_i(\vec{x}+\vec{c_i},t)$, if $\vec{x} \notin \Omega$
 \end{itemize}
-%TODO Regina: Propagation kurz im Text erklären! 
-%TODO Regina: Bounce-Back boundary conditions erklaeren!
 
 \subsection{The Level Set Method}
 We deal with the movement of the interface between the two fluids by using the level set method. The method captures the surface that represents the interface with a continuous signed distance function, where the interface is implicitly given as the zero level set.
@@ -184,19 +203,14 @@ Let $\Gamma_t$ be our interface at time t. Within the level set method, $\Gamma_
 \begin{equation}
   \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0 \text{,}
 \end{equation}
-with the velocity $\vec v = \vec u(\vec x(t))$ for $\vec x(t) \in \Gamma_t$, which we obtain from the lattice Boltzmann method.
-%TODO Regina: LBM als Abkürzung einführen
+with the velocity $\vec v = \vec u(\vec x(t))$ for $\vec x(t) \in \Gamma_t$, which we obtain from the LBM.
 
 To solve this equation we use the Toolbox of Ian Mitchell \cite{mitchell} for Matlab. This toolbox takes as input the velocity field we get from the lattice Boltzmann method and computes the movement of the interface. The toolbox also provides functions to calculate the normal and the curvature of the surface. We will need this information for the coupling of the methods.
-
-%TODO Regina: die Toolbox muss anders referenziert werden in der Bibliography. Als URL link oder eben die Homepage, wo man das runterladen kann und wann ihr es runtergeladen haben. Gibt dafuer MISC in bibtex
 
 \subsection{Coupling of LBM and level set method}
 The lattice Boltzmann method requires a boundary treatment at the interface which implements the jump conditions (\ref{jumpconditions}). For sake of simplicity, we do not write arrows for every vector, i.e., $\vec{u} \rightarrow u$. One should consider that every position, direction, and velocity is two-dimensional. 
 
-For the coupling, we use a bounce back type boundary condition that prescribes the velocity as Dirichlet value. 
-%TODO Regina: REF!!!
-For example, in Fig. \ref{coupling} for a point $x_2 \in \Omega_2$ that is next to the phase interface we set,
+For the coupling, we use a bounce back type boundary condition that prescribes the velocity as Dirichlet value as described in \cite[p. 1146]{Thoemmes}. For example, in Fig. \ref{coupling} for a point $x_2 \in \Omega_2$ that is next to the phase interface we set,
 \begin{figure}
 	\hfill\includegraphics[width=10cm,natwidth=437,natheight=178]{coupling.png}\hspace*{\fill}
 	\caption{Link between two points in different fluids.}
@@ -218,9 +232,7 @@ with
 \begin{equation}
   \Lambda_i = c_i \otimes c_i - \frac12 (c_i \cdot c_i) \mathbf{I} \text{. }
 \end{equation}
-That is, an orthogonal projection of the column vectors of the (symmetric) deviatoric shear rate jump tensor on the link direction weighted with the interface distance and a compensation term for the interpolation error that arises, when the interface is not on the exact middle between two LBM grid cells.
-%TODO Regina: sehr langer Satz, 2-3 einfache Saetze draus machen!
-The tensor product is $a \otimes b = ab^T$ and the double contraction $A:B = \mathrm{trace}(AB^T)$. We can rewrite formula (\ref{add_term2}) in the form,
+That is an orthogonal projection of the column vectors of the (symmetric) deviatoric shear rate jump tensor on the link direction weighted with the interface distance and a compensation term for the interpolation error. This error arises, when the interface is not on the exact middle between two LBM grid cells. The tensor product is $a \otimes b = ab^T$ and the double contraction $A:B = \mathrm{trace}(AB^T)$. We can rewrite formula (\ref{add_term2}) in the form,
 \begin{equation}
   R_i = 6f_i^* (-q)(1-q)\Lambda_i:[S] - (q-\frac12)\Lambda_i:S_2 \text{,}
 \end{equation}
@@ -234,15 +246,16 @@ Furthermore, we have,
   \label{Lambda_iTimes_S}
 \end{equation}
 which is obtained by a coordinate transformation onto a basis $(n, t)$ of normal and tangential vector to the interface. From the fluid mechanical jump condition (\ref{jumpconditions}) and the relation $[\mu S] = \bar{\mu}[S] + [\mu]\bar{S} $ it can be seen,
-\begin{align}
+\begin{gather}
 	[S]:n \otimes n =  \frac{1}{2 \bar\mu} ([p] + 2 \sigma \kappa) - \frac{[\mu]}{\bar{\mu}} \bar{S} : n \otimes n \text{,} \\
 	[S]:n \otimes t = - \frac{[\mu]}{\bar{\mu}} \bar{S} : n \otimes t \text{.}
-\end{align}
+\end{gather}
 Here $\mu_k = \varrho_k \nu_k$ are the dynamic viscosities, with $\bar{\mu} = (\mu_1 + \mu_2)/2$ and $\bar{S} = (S_1 + S_2)/2$ as averaged quantities, $\kappa$ the interface curvature, and the viscosity jump  $[\mu] = \mu_2 - \mu_1$.
 The pressure jump is approximated by,
 \begin{equation}
 	[p] \approx \frac{1}{3} (\rho(x_2,t)\varrho_2 - \rho(x_1,t)\varrho_1) \text{.}
 \end{equation}
+%TODO: Kommentar, dass hier ein Fehler im Thömmes-paper ist
 and with that, all variables for the boundary conditions are well defined.
 A refill method is still missing. Due to the fact that the interface moves, some cells change their fluid type. We use an equilibrium/non-equilibrium refill as it is described in \cite{Caiazzo} consisting out of the four following steps:
 \begin{itemize}
@@ -312,42 +325,41 @@ The Couette-Flow is not influenced by surface tension due to the fact that the s
 
 \begin{thebibliography}{1}	
 
-\bibitem{Thoemmes} {\sc G. Th\"ommes, J. Becker}, {\em A lattice Boltzmann method for immiscible multiphase flow simulations using the level set method}, J. Comput. Phys. 228 (2009), 1139-1156
+\bibitem{Thoemmes} {\sc G. TH\"OMMES, J. BECKER}, A lattice Boltzmann method for immiscible multiphase flow simulations using the level set method, J. Comput. Phys. 228 (2009), 1139-1156.
 
-\bibitem{Adalsteinsson} {\sc D. Adalsteinsson, J.A. Sethian}, {\em A fast level set method for propagating interfaces}, J. Comput. Phys. 118 (2) (1995) 269-277
+\bibitem{Adalsteinsson} {\sc D. ADALSTEINSSON, J.A. SETHIAN}, A fast level set method for propagating interfaces, J. Comput. Phys. 118 (2) (1995) 269-277.
 
-\bibitem{GRcg1} {\sc A.K. Gunstensen, D.H. Rothman, S. Zaleski, G. Zanetti}, {\em Lattice Boltzmann model of immiscible fluids}, Phys. Rev. A 43 (8) (1991) 4320-4327
+\bibitem{GRcg1} {\sc A.K. GUNSTENSEN, D.H. ROTHMAN, S. ZALESKI, G. ZANETTI}, Lattice Boltzmann model of immiscible fluids, Phys. Rev. A 43 (8) (1991) 4320-4327.
 
-\bibitem{GRcg2} {\sc A.K. Gunstensen, D.H. Rothman}, {\em Macroscopic modeling of immiscible flows in three dimensions by a lattice Boltzmann method}, Europhys. Lett. 18 (2) (1998) 157-161
+\bibitem{GRcg2} {\sc A.K. GUNSTENSEN, D.H. ROTHMAN}, Macroscopic modeling of immiscible flows in three dimensions by a lattice Boltzmann method, Europhys. Lett. 18 (2) (1998) 157-161.
 	
-\bibitem{GRcg3} {\sc K. Sankaranarayanan, I.G. Kevrekidies, S. Sundaresan, J. Lu, G. Tryggvason}, {\em A comparative study of lattice Boltzmann and front-tracking finite-difference methods for bubble simulations}, Int. J. Multiphase Flow 29 (1) (2003) 109-116
+\bibitem{GRcg3} {\sc K. SANKARANARAYANAN, I.G. KEVREKIDIES, S. SUNDARESAN, J. LU, G. TRYGGVASON}, A comparative study of lattice Boltzmann and front-tracking finite-difference methods for bubble simulations, Int. J. Multiphase Flow 29 (1) (2003) 109-116.
 
-\bibitem{ShanChen1} {\sc X. Shan, H. Chen}, {\em Lattice Boltzmann model for simulation flows with multiple phases and components}, Phys. Rev. E 47 (3) (1999) 567-603
+\bibitem{ShanChen1} {\sc X. SHAN, H. CHEN}, Lattice Boltzmann model for simulation flows with multiple phases and components, Phys. Rev. E 47 (3) (1999) 567-603.
 
-\bibitem{ShanChen2} {\sc X. Shan, H. Chen}, {\em Simulation of nonideal gases and liquid-gas phase transition by the Lattice Boltzmann equation}, Phys. Rev. E 49 (4) (1994) 2941
+\bibitem{ShanChen2} {\sc X. SHAN, H. CHEN}, Simulation of nonideal gases and liquid-gas phase transition by the Lattice Boltzmann equation, Phys. Rev. E 49 (4) (1994) 2941.
 	
-\bibitem{Koerner} {\sc C. K\"orner, M. Thies, T. Hofmann, N. Th\"urey, U. R\"ude}, {\em Lattice Boltzmann Model for Free Surface Flow for Modeling Foaming}, J. Stat. Phys. 121 (2005) 179-196
+\bibitem{Koerner} {\sc C. K\"ORNER, M. THIES, T. HOFMANN, N. TH\"UREY, U. R\"UDE}, Lattice Boltzmann Model for Free Surface Flow for Modeling Foaming, J. Stat. Phys. 121 (2005) 179-196.
 
-\bibitem{LBM1} {\sc S. Chen, G.D. Doolenm}, {\em Lattice Boltzmann method for fluid flows}, Ann. Rev. Fluid Mech. 30 (1998) 329-364
+\bibitem{LBM1} {\sc S. CHEN, G.D. DOOLENM}, Lattice Boltzmann method for fluid flows, Ann. Rev. Fluid Mech. 30 (1998) 329-364.
 
-\bibitem{LBM2} {\sc X. He, L.S. Luo}, {\em Lattice Boltzmann model for the incompressible Navier-Stokes equation}, J. Stat. Phys. 88 (1997) 927-944
+\bibitem{LBM2} {\sc X. HE, L.S. LUO}, Lattice Boltzmann model for the incompressible Navier-Stokes equation, J. Stat. Phys. 88 (1997) 927-944.
 
-\bibitem{LBM3} {\sc S. Succi}, {\em The Lattice Boltzmann Equation for Fluid Dynamics and Beyond}, Clarendon Press, Oxford, ISBN 978-0-19-850398-9 (2001)
+\bibitem{LBM3} {\sc S. SUCCI}, The Lattice Boltzmann Equation for Fluid Dynamics and Beyond, Clarendon Press, Oxford, ISBN 978-0-19-850398-9 (2001).
 
-\bibitem{LBM4} {\sc D.A. Wolf-Gladow}, {\em Lattice-Gas Cellular Automata and Lattice Boltzmann Models}, An Introduction, Springer, 2000
+\bibitem{LBM4} {\sc D.A. WOLF-GLADOW}, Lattice-Gas Cellular Automata and Lattice Boltzmann Models, An Introduction, Springer, 2000.
 
-\bibitem{BGK} {\sc P. Bhatnagar, E. Gross, M. Krook}, {\em A model for collision processes in gases: 1. Small amplitude processes in charged and neutral one-component systems}, Phys. Rev. 94 (1954) 511
+\bibitem{BGK} {\sc P. BHATNAGAR, E. GROSS, M. KROOK}, A model for collision processes in gases: 1. Small amplitude processes in charged and neutral one-component systems, Phys. Rev. 94 (1954) 511.
 
-\bibitem{OsherSethian} {\sc S. Osher, J. Sethian}, {\em Fronts propagating with curvature-dependent speed: algorithms based on Hamlton-Jacobi formulations}, J. Comput. Phys. 79 (1988) 12-49
+\bibitem{OsherSethian} {\sc S. OSHER, J. SETHIAN}, Fronts propagating with curvature-dependent speed: algorithms based on Hamlton-Jacobi formulations, J. Comput. Phys. 79 (1988) 12-49.
 
-\bibitem{mitchell}
-Mitchell, Ian, A Toolbox of Level Set Methods
+\bibitem{mitchell}I. MITCHELL, A Toolbox of Level Set Methods, August 2015, URL: \url{http://www.cs.ubc.ca/~mitchell/ToolboxLS/}.
 
-\bibitem{Caiazzo} {\sc A. Caiazzo}, {\em Asymptotic analysis of lattice Boltzmann method for fluid-structure interaction problems}, Ph.D. Thesis, Kaiserslautern (Germany) and Pisa (Italy), 2007
+\bibitem{Caiazzo} {\sc A. CAIAZZO}, Asymptotic analysis of lattice Boltzmann method for fluid-structure interaction problems, Ph.D. Thesis, Kaiserslautern (Germany) and Pisa (Italy), 2007.
 
-\bibitem{Krueger} {\sc T. Kr\"uger, F. Varnik, D. Raabe}, {\em Shear stress in lattice Boltzmann simulations}, Phys. Rev. E 79 (4) (2009) 046704
+\bibitem{Krueger} {\sc T. KR\"UGER, F. VARNIK, D. RAABE}, Shear stress in lattice Boltzmann simulations, Phys. Rev. E 79 (4) (2009) 046704.
 
-\bibitem{Lallemand} {\sc P. Lallemand, L.-S. Luo}, {\em Lattice Boltzmann method for moving boundaries}, J. Comput. Phys. 184 (2003) 406-421
+\bibitem{Lallemand} {\sc P. LALLEMAND, L.-S. LUO}, Lattice Boltzmann method for moving boundaries, J. Comput. Phys. 184 (2003) 406-421.
 
 \end{thebibliography}
 
