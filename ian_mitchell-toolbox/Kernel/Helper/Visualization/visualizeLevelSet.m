@@ -116,7 +116,8 @@ function h = visualizeLevelSet(g, data, display_type, level, title_string)
     switch(display_type)
      case 'contour'
       [ ~, h ] = contour(g.xs{1}, g.xs{2}, data, level, 'b');
-      axis square;  axis manual;
+     % axis square;  
+      axis manual;
      case 'surf'
       h = surf(g.xs{1}, g.xs{2}, data);
      otherwise
