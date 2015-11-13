@@ -1,4 +1,4 @@
-classdef Grid
+classdef LBM_Grid
   properties
     dx
     dt
@@ -8,7 +8,6 @@ classdef Grid
     lidVel % die gibt es nur einmal
     cells
     cells_new
-    %type
 
     % D2Q9; Indexing:
     % 9   2   3
@@ -17,7 +16,6 @@ classdef Grid
     %     v
     % 7   6   5
     %
-    % 
     % Remark: Origin (1,1) is bottom left!
     %
     %   ^
