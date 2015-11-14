@@ -233,21 +233,21 @@
 \newcommand{\fiveptsize}{%
    \@setfontsize\fiveptsize{5}{7}}
 
-\newcommand\simac{SIAM J{\HLlittlest OURNAL} M{\HLlittlest ACRO}}
-\newcommand\siads{SIAM J.\ A{\HLlittlest PPLIED} D{\HLlittlest YNAMICAL} S{\HLlittlest YSTEMS}}
-\newcommand\siap{SIAM J.\ A{\HLlittlest PPL.} M{\HLlittlest ATH.}}
-\newcommand\sicomp{SIAM J.\ C{\HLlittlest OMPUT.}}
-\newcommand\sicon{SIAM J.\ C{\HLlittlest ONTROL}  O{\HLlittlest PTIM.}}
-\newcommand\sidma{SIAM J.\ D{\HLlittlest ISCRETE} M{\HLlittlest ATH.}}
-\newcommand\sima{SIAM J.\ M{\HLlittlest ATH.} A{\HLlittlest NAL.}}
-\newcommand\simax{SIAM J.\ M{\HLlittlest ATRIX} A{\HLlittlest NAL.} A{\HLlittlest PPL.}}
-\newcommand\sinum{SIAM J.\ N{\HLlittlest UMER.} A{\HLlittlest NAL.}}
-\newcommand\siopt{SIAM J.\ O{\HLlittlest PTIM.}}
-\newcommand\sisc{SIAM J.\ S{\HLlittlest CI.} C{\HLlittlest OMPUT.}}
-\newcommand\sirev{SIAM R{\HLlittlest EV.}}
-\newcommand\siims{SIAM J. I{\HLlittlest MAGING} S{\HLlittlest CIENCES}}
-\newcommand\sifin{SIAM J. F{\HLlittlest INANCIAL} M{\HLlittlest ATH.}}
-\newcommand\juq{SIAM/ASA J. U{\HLlittlest NCERTAINTY} Q{\HLlittlest UANTIFICATION}}
+%\newcommand\simac{SIAM J{\HLlittlest OURNAL} M{\HLlittlest ACRO}}
+%\newcommand\siads{SIAM J.\ A{\HLlittlest PPLIED} D{\HLlittlest YNAMICAL} S{\HLlittlest YSTEMS}}
+%\newcommand\siap{SIAM J.\ A{\HLlittlest PPL.} M{\HLlittlest ATH.}}
+%\newcommand\sicomp{SIAM J.\ C{\HLlittlest OMPUT.}}
+%\newcommand\sicon{SIAM J.\ C{\HLlittlest ONTROL}  O{\HLlittlest PTIM.}}
+%\newcommand\sidma{SIAM J.\ D{\HLlittlest ISCRETE} M{\HLlittlest ATH.}}
+%\newcommand\sima{SIAM J.\ M{\HLlittlest ATH.} A{\HLlittlest NAL.}}
+%\newcommand\simax{SIAM J.\ M{\HLlittlest ATRIX} A{\HLlittlest NAL.} A{\HLlittlest PPL.}}
+%\newcommand\sinum{SIAM J.\ N{\HLlittlest UMER.} A{\HLlittlest NAL.}}
+%\newcommand\siopt{SIAM J.\ O{\HLlittlest PTIM.}}
+%\newcommand\sisc{SIAM J.\ S{\HLlittlest CI.} C{\HLlittlest OMPUT.}}
+%\newcommand\sirev{SIAM R{\HLlittlest EV.}}
+%\newcommand\siims{SIAM J. I{\HLlittlest MAGING} S{\HLlittlest CIENCES}}
+%\newcommand\sifin{SIAM J. F{\HLlittlest INANCIAL} M{\HLlittlest ATH.}}
+%\newcommand\juq{SIAM/ASA J. U{\HLlittlest NCERTAINTY} Q{\HLlittlest UANTIFICATION}}
 
 \RequirePackage[dvips]{color}
 \definecolor{header1}{cmyk}{.9,.5,0,.35}
@@ -289,27 +289,27 @@
 \vbox{%
 {\HLlittle\baselineskip10pt
 \noindent
-\expandafter\csname#1\endcsname\hfill
-{\scriptsize{\copyright}} #6 Society for Industrial and
-Applied\vspace*{-1.2mm}  Mathematics\\
-Vol.\ #2, No.\ #3, pp.\ #4, #5\ #6
+%\expandafter\csname#1\endcsname\hfill
+%{\scriptsize{\copyright}} #6 Society for Industrial and
+%Applied\vspace*{-1.2mm}  Mathematics\\
+%Vol.\ #2, No.\ #3, pp.\ #4, #5\ #6
 \hfill #7\par}%
 }
 \normalsize}
 
 %%%\newcommand{\slugger}[5]{%
-\newcommand{\slugger}[4]{%
-\vbox{%
-{\HLlittle\baselineskip10pt
-\noindent
-\expandafter\csname#1\endcsname\hfill
-{\scriptsize{\copyright}} #2 Society for Industrial and
-Applied\vspace*{-1.2mm} Mathematics\\
+\newcommand{\slugger}%[4]{%
+%\vbox{%
+%{\HLlittle\baselineskip10pt
+%\noindent
+%\expandafter\csname#1\endcsname\hfill
+%{\scriptsize{\copyright}} #2 Society for Industrial and
+%Applied\vspace*{-1.2mm} Mathematics\\
 %%%Vol.\ #3, No.\ #4, pp.\ #5
-Vol.\ #3, pp.\ #4
-\hspace*{\fill} \par}%
-}
-\normalsize}
+%Vol.\ #3, pp.\ #4
+%\hspace*{\fill} \par}%
+%}
+%\normalsize}
 
 \setcounter{secnumdepth}{3}
 \newcounter {section}
