@@ -1,39 +1,47 @@
 clear;
-% D2Q9 Lattice-Boltzmann/Level-Set Code for Multiphase flow 
+% D2Q9 Lattice-Boltzmann/Level-Set Code for Multiphase flow
 % According to doi:10.1016/j.camwa.2009.02.005
-% Uses:
+%
+% Authors:
+% Daniel Zint, daniel.zint@fau.de,
+% Lorenz Hufnagel, lorenz.hufnagel@fau.de
+%
+% Used Libraries:
 % -Toolbox of Level Set Methods, Copyright © 2007 by Ian M. Mitchell.
 % http://www.cs.ubc.ca/~mitchell/ToolboxLS
 % -Polygon intersection function, by Douglas M. Schwarz, BSD
 % http://www.mathworks.com/matlabcentral/fileexchange/11837-fast-and-robust-curve-intersections
 
-%Physical setup
-t_end = 20; % [s]
+%% Physical setup
+t_end = 50; % [s]
 x_len = 1; % [m]
-y_len = 2; % [m] 
-rho_phys(1) = 1.0; % [kg/m^3] % Mass-density of Fluid 1, 
+y_len = 1; % [m]
+rho_phys(1) = 1; % [kg/m^3] % Mass-density of Fluid 1,
 rho_phys(2) = 1; % [kg/m^3] e.g. ~1000 for Water, 1.2 for Air. In [LU] Cell-density is varying around 1!
-visc(1) = 1;% [m^2/s] kinematic viscosity of fluid 1
-visc(2) = 7;% [m^2/s] kinematic viscosity of fluid 2
-sigma = 1.6e-6;  % [kg/s^2] surface tension between the two phases, e.g. ~ 76E-3 between water and air
+visc(1) = 1/6;% [m^2/s] kinematic viscosity of fluid 1
+visc(2) = 5/6;% [m^2/s] kinematic viscosity of fluid 2
+sigma = 1.6e-5;  % [kg/s^2] surface tension between the two phases, e.g. ~ 76E-3 between water and air
 
-lidVel = 0.5; % [m/s] x-Velocity of the top Lid
-use_solid_boundaries = 0; % Use solid/bounce-back boundaries on left/right domain border?
-% Otherwise, uses periodic boundaries. Top (Bottom) LBM-boundary is always solid (resp. moving-no-slip)
+use_periodic_x = 1; % Use periodic boundaries on left/right domain border?
+% -> Otherwise No-Slip/Bounce-Back
+use_periodic_y = 0; % Use periodic boundaries on top/bottom domain border?
+% -> Otherwise No-Slip/Bounce-Back, optionally moving Top-boundary
+lidVel = 1; % [m/s] x-Velocity of the top Lid
 
-%!NOTE! Initial Inteface is defined below (l.80), once Level-Set Grid was initialized
+testcase = 'line';
+% !!NOTE!! Initial Inteface is defined below (Line 87), once Level-Set Grid was initialized
 
-%LBM Setup
+%% LBM Setup
 lbm_g=LBM_Grid;
-lbm_g.dx=min(x_len,y_len)/5; % [m]
-lbm_g.dt=lbm_g.dx^2;% [s]  %Diffusive scaling..
+lbm_g.dx=min(x_len,y_len)/15; % [m]
+lbm_g.dt= lbm_g.dx^2;% [s]  %Diffusive scaling..
 
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
 lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 
-lbm_it = 20; % Number of LBM-iterations until level-set update
-% This number should be choosen according to the following: 
+lbm_it = 50; % Number of LBM-iterations until level-set update
+% This number should be choosen according to the following:
 % (lbm_it * lbm_g.dt) * max(interface-velocity) < lbm_g.dx
 % Such, that the interface is not advected further than one cell per one LBM-LSM alternation
 
@@ -50,9 +58,8 @@ for i=1:9
   lbm_g.cells(:,:,i) = lbm_g.weights(i);
 end
 
-%---------------------------------------------------------------------------
-% Load Level-Set library
-% !!! ATTENTION !!! 
+%% Set up Level-Set library
+% !!! ATTENTION !!!
 % If Matlab warns "Undefined function or variable 'processGrid'",
 % You have to adapt the path in addPathToKernel.m according to your OS.
 run('./addPathToKernel');
@@ -62,7 +69,7 @@ lsm_g.dim = 2;
 lsm_g.dx = lbm_g.dx;
 lsm_g.min = [0.5*lsm_g.dx; 0.5*lsm_g.dx];
 
-if(~use_solid_boundaries)
+if(use_periodic_x || use_periodic_y)
   lsm_g.max = [x_len - 0.5*lsm_g.dx; y_len - 0.5*lsm_g.dx];
   lsm_g.bdry = @addGhostPeriodic;
 else
@@ -72,32 +79,43 @@ end
 lsm_g = processGrid(lsm_g);
 
 %---------------------------------------------------------------------------
-% Create initial Interface conditions 
+% Create initial Interface conditions
 %   Note that in the periodic BC case, these initial conditions will not
 %   be continuous across the boundary
 %   In practice that little detail is ignored
-%
 %   data: Implicit surface function, discretely given at xs
-
-testcase = 'line';
-
 switch(testcase)
   case 'circle'
-    center = [ 0.5*x_len; .8*y_len];
-    radius = 0.3*min(x_len,y_len);
+    % Celltype 1: Outer Fluid
+    % Celltype 2: Inner Fluid
+    center = [ 0.5*x_len; .5*y_len];
+    radius = 0.35*min(x_len,y_len);
     
     data = zeros(size(lsm_g.xs{1}));
     data = data + (lsm_g.xs{1} - center(1)).^2 + (lsm_g.xs{2} - center(2)).^2;
     data = sqrt(data) - radius;
   case 'line'
-    % Horizontale Trennlinie
-    seperator_y = 0.405*y_len;
+    % Horizontal seperation line
+    % Celltype 1: Upper fluid
+    % Celltype 2: Lower fluid
+
+    if (use_periodic_y)
+      disp('Warning, periodic y boundaries are not meaningful!')
+    end
+
+    if (lidVel == 0)
+      disp('Warning, zero lid velocity!')
+    end
+
+    if (rho_phys(1) ~= rho_phys(2))
+      disp('Warning, different densities. Analytic solution does not account for that!')
+    end
+    
+    seperator_y = 0.5*y_len;
     data = lsm_g.xs{2} - seperator_y;
   otherwise
     error('Testcase does not exist: %s', testcase);
 end
-data0 = data;
-
 %---------------------------------------------------------------------------
 
 % Set up spatial approximation scheme.
@@ -156,8 +174,9 @@ pressure_vek =[];
 startTime = cputime;
 
 %---------------------------------------------------------------------------
-%% Main Time Loop [0, t_end) (subject to a little roundoff).
 
+%% Main Time Loop
+%[0, t_end) (subject to a little roundoff).
 while(t_end - tNow > 100 * eps * t_end)
   
   %% Pass Data from Level Set to LBM
@@ -165,6 +184,16 @@ while(t_end - tNow > 100 * eps * t_end)
   % Contour line of the (data == zero) level set
   C=contourc(lsm_g.xs{2}(1,:),lsm_g.xs{1}(:,1),  data, [0 0]);
   C=C(:,2:end);
+
+  index_set = [];
+  %Find all cells, that are intersected by the interface
+  % And their 8 neighbours
+  for (i = 1:size(C,2))
+      p_x = (ceil(C(:,i)/lbm_g.dx)+1);
+      neighbours = p_x*ones(1,8)+lbm_g.c(:,2:9);
+      index_set = [index_set, p_x, neighbours];
+    end
+  index_set = unique(index_set','rows')';
   
   % Get curvature
   [curvature, ~] = curvatureSecond(lsm_g, data);
@@ -193,10 +222,7 @@ while(t_end - tNow > 100 * eps * t_end)
   [x, y] = find(changed_type);
   
   for i=1:length(x)
-    
-    % TODO ensure that all three nodes, we interpolate from are REALLY interior
-    % (Could fail for small bubbles, with radius < 3 grid-cells....)
-    if x(i) < 4 || x(i) > lsm_g.N(1)-1 || y(i) < 4 || y(i) > lsm_g.N(2)-1
+    if x(i) < 2 || x(i) > lbm_g.nx-1 || y(i) < 2 || y(i) > lbm_g.ny-1
       continue;
     end
     
@@ -209,32 +235,42 @@ while(t_end - tNow > 100 * eps * t_end)
     c_imax = lbm_g.c(:,i_c_imax);
     
     if celltype(x(i),y(i)) ~= celltype(x(i) + c_imax(1),y(i) + c_imax(2))
-      %TODO, what if both/no links are pointing into same celltype?!?!
-      disp('bad error in refill Algorithm');
-      return;
+      disp('Warning in refill Algorithm, fluid only single Grid cell thick');
+      
+      % What to do if both/no links are pointing into same celltype?!?!
+      %return;
+      %continue;
     end
-
+    
     % Here, we found the link pointing inward, i.e. away from the interface
     % Now refill, i.e.
     % 1. Interpolate density and velocity in current cell from neighbours along this link direction
     
-    % TODO ensure that all three nodes, we interpolate from are REALLY interior
+    %Avoid the presence of three Ghost layers, hence modulo-magic
+    x1 = mod([x(i);y(i)] + c_imax - 2, [lbm_g.nx-2; lbm_g.ny-2]) + 2;
+    x2 = mod([x(i);y(i)]+2*c_imax - 2, [lbm_g.nx-2; lbm_g.ny-2]) + 2;
+    x3 = mod([x(i);y(i)]+3*c_imax - 2, [lbm_g.nx-2; lbm_g.ny-2]) + 2;
+    
+    % "ensure" that all three nodes, we interpolate from are REALLY interior
     % (Could fail for small bubbles, with radius < 3 grid-cells....)
+    if (celltype(x2) ~= celltype(x1))
+      x2 = x1;
+    end
+    if (celltype(x3) ~= celltype(x2))
+      x3 = x2;
+    end
     
     % rho and vel are up-to-date from previous LBM (before Level-Set)
-
-    rho_interp = 3 * rho(x(i) + c_imax(1), y(i) + c_imax(2)) - ...
-      3 * rho(x(i) + 2*c_imax(1), y(i) + 2*c_imax(2)) + ...
-      rho(x(i) + 3*c_imax(1), y(i) + 3*c_imax(2));
+    rho_interp = 3 * rho(x1(1),x1(2)) - ...
+      3 * rho(x2(1), x2(2)) + rho(x3(1), x3(2));
     
-    vel_interp = 3 * vel(x(i) + c_imax(1), y(i) + c_imax(2),:) - ...
-      3 * vel(x(i) + 2*c_imax(1), y(i) + 2*c_imax(2),:) + ...
-      vel(x(i) + 3*c_imax(1), y(i) + 3*c_imax(2),:);
-
+    vel_interp = 3 * vel(x1(1), x1(2),:) - ...
+      3 * vel(x2(1), x2(2),:) + vel(x3(1),x3(2),:);
+    
     % 2. Calculate equilibrium with rho_interp and vel_interp
     equil=zeros(1,9);
     non_eq=zeros(1,9);
-
+    
     for j=1:9
       cTimesU = lbm_g.c(1,j) * vel_interp(1) + lbm_g.c(2,j) * vel_interp(2);
       equil(j) =  lbm_g.weights(j) .* (rho_interp + ...
@@ -247,7 +283,7 @@ while(t_end - tNow > 100 * eps * t_end)
     for j = 1:9
       cTimesU = lbm_g.c(1,j) * vel(x(i) + c_imax(1), y(i) + c_imax(2),1) +...
         lbm_g.c(2,j) * vel(x(i) + c_imax(1), y(i) + c_imax(2),2);
-
+      
       non_eq(j) = lbm_g.cells(x(i) + c_imax(1), y(i) + c_imax(2), j) - ...
         lbm_g.weights(j) .* (rho(x(i) + c_imax(1), y(i) + c_imax(2)) + ...
         3 .* cTimesU + ...
@@ -291,98 +327,96 @@ while(t_end - tNow > 100 * eps * t_end)
     end
     
     %Interface treatment PRE-stream
-
-    % Sync cells_new to post-collision cells, because we use it temporarily in the following
+    
+    %Copy post-collision cells to cells_new, because we use it temporarily in the following
     lbm_g.cells_new(:,:,:) = lbm_g.cells(:,:,:);
     
-    for x=1:lbm_g.nx
-      for y = 1:lbm_g.ny
-        for k = 2:9
-
-          x_b = x+lbm_g.c(1,k); % Indices of "boundary" point
-          y_b = y+lbm_g.c(2,k); % in opposite fluid
-          
-          if min(x_b,y_b) < 1 || x_b > lbm_g.nx || y_b > lbm_g.ny
-            continue
-          end
-          
-          % Hier evtl die "isNearInterface(..)"-Funktion verwenden? (Doku S. 124) TODO
-          % Das ist mit die teuerste Abfrage..
-          if celltype(x,y) == celltype(x_b,y_b)
-            continue
-          end
-          
-          % Approximate q linearly: the position of interface along the LBM-Link
-          q = data(x_b, y_b)/(data(x_b, y_b) - data(x,y));
-          
-          if (x > 2 && x < lbm_g.nx-1 && y > 2 && y < lbm_g.ny-1)
-            x_2 = [lsm_g.xs{1}(x-1,y-1);lsm_g.xs{2}(x-1,y-1)];
-            x_1 = [lsm_g.xs{1}(x_b-1,y_b-1); lsm_g.xs{2}(x_b-1,y_b-1)];
-            
-            %Build more accurate intersection of link and contour-line. Mitchel-Library does not provide that..
-            [x_int,y_int]=intersections([x_1(1),x_2(1)],[x_1(2),x_2(2)],C(2,:),C(1,:),false);
-            if (~isempty(x_int))
-              q = norm(x_1-[x_int(1);y_int(1)])/norm(x_1-x_2);
-            end
-          end
-          
-          % add_term1, First order interpolated velocity between phases to ensure continuity
-          vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x_b, y_b, 1); vel(x_b,y_b,2)];
-          add_term1 = 6*lbm_g.weights(k) * lbm_g.c(:,lbm_g.invDir(k))' * vel_int; % 6 f^*_i c_i u
-          
-          % S^(k)
-          % Subscript according to Thoemmes-Paper!
-          % 2: The point/cell under consideration
-          % 1: The point, the current intersecting link points to
-
-          S_2 = zeros(2);  % Shear rate tensors
-          S_1 = zeros(2);   
-          for l = 1:9
-            f_neq_2 = f_neq(x,y,l);
-            f_neq_1 = f_neq(x_b,y_b,l);
-            S_2 = S_2 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_2;
-            S_1 = S_1 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_1;
-          end
-          S_2 = -1.5 * lbm_g.omega(celltype(x,y)) * S_2;
-          S_1 = -1.5 * lbm_g.omega(celltype(x_b,y_b)) * S_1;
-          
-          
-          % Lambda_i, Orthogonal projector
-          Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - lbm_g.c(:,k)'*lbm_g.c(:,k)/2*eye(2);  
-
-          % Lambda_i : [S]
-          S_average = (S_2+S_1)*0.5;
-          % Normal, tangent and curvature from LS-Toolbox
-          normal = (-1)^celltype(x,y) * [deriv(x,y,1);deriv(x,y,2)];
-          normal = normal/norm(normal);        % normal n
-          tangent = [-normal(2);normal(1)];    % tangent t
-          kappa = curvature(x,y);          % curvature
-          
-          % dynamic viscosity -> mu = mass_dens * nu 
-          mu_2 = visc(celltype(x,y)) * rho_phys(celltype(x,y));
-          mu_1 = visc(celltype(x_b,y_b)) * rho_phys(celltype(x_b,y_b));
-          mu_average = (mu_2 + mu_1)*0.5;
-          
-          % ! Formula given with different sign in doi:10.1016/j.jcp.2008.10.032!
-          p_jump = 1/3 *(rho(x,y)*rho_phys(celltype(x,y)) - rho(x_b,y_b) * rho_phys(celltype(x_b,y_b)));
-          mu_jump = (mu_2 - mu_1);  
-          
-          % Intermedia results
-          S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal'));
-          S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
-          
-          Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (lbm_g.c(:,k)'*lbm_g.c(:,k))/2) + ...
-            2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tangent'*lbm_g.c(:,k));
-          
-          % Lambda_i : S^(2)
-          Lambda_times_S_2 = trace(Lambda_i*S_2');
-          
-          % add_term2 = R_i
-          Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2; 
-          add_term2 = 6*lbm_g.weights(k)*Lambda_times_A;   % R_i
-          
-          lbm_g.cells_new(x_b,y_b, lbm_g.invDir(k)) = lbm_g.cells(x,y,k) + add_term1 + add_term2;
+    for (i = 1:size(index_set,2))
+      x=index_set(1,i);
+      y=index_set(2,i);
+      for k = 2:9
+        
+        x_b = x+lbm_g.c(1,k); % Indices of "boundary" point
+        y_b = y+lbm_g.c(2,k); % in opposite fluid
+        
+        if min(x_b,y_b) < 1 || x_b > lbm_g.nx || y_b > lbm_g.ny
+          continue
         end
+        
+        if celltype(x,y) == celltype(x_b,y_b)
+          continue
+        end
+        
+        % Approximate q linearly: the position of interface along the LBM-Link
+        q = data(x_b, y_b)/(data(x_b, y_b) - data(x,y));
+        
+        if (x > 2 && x < lbm_g.nx-1 && y > 2 && y < lbm_g.ny-1)
+          x_2 = [lsm_g.xs{1}(x-1,y-1);lsm_g.xs{2}(x-1,y-1)];
+          x_1 = [lsm_g.xs{1}(x_b-1,y_b-1); lsm_g.xs{2}(x_b-1,y_b-1)];
+          
+          %Build more accurate intersection of link and contour-line. Mitchel-Library does not provide that..
+          [x_int,y_int]=intersections([x_1(1),x_2(1)],[x_1(2),x_2(2)],C(2,:),C(1,:),false);
+          if (~isempty(x_int))
+            q = norm(x_1-[x_int(1);y_int(1)])/norm(x_1-x_2);
+          end
+        end
+        
+        % add_term1, First order interpolated velocity between phases to ensure continuity
+        vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x_b, y_b, 1); vel(x_b,y_b,2)];
+        add_term1 = 6*lbm_g.weights(k) * lbm_g.c(:,lbm_g.invDir(k))' * vel_int; % 6 f^*_i c_i u
+        
+        % S^(k)
+        % Subscript according to Thoemmes-Paper!
+        % 2: The point/cell under consideration
+        % 1: The point, the current intersecting link points to
+        
+        S_2 = zeros(2);  % Shear rate tensors
+        S_1 = zeros(2);
+        for l = 1:9
+          f_neq_2 = f_neq(x,y,l);
+          f_neq_1 = f_neq(x_b,y_b,l);
+          S_2 = S_2 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_2;
+          S_1 = S_1 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_1;
+        end
+        S_2 = -1.5 * lbm_g.omega(celltype(x,y)) * S_2;
+        S_1 = -1.5 * lbm_g.omega(celltype(x_b,y_b)) * S_1;
+        
+        
+        % Lambda_i, Orthogonal projector
+        Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - lbm_g.c(:,k)'*lbm_g.c(:,k)/2*eye(2);
+        
+        % Lambda_i : [S]
+        S_average = (S_2+S_1)*0.5;
+        % Normal, tangent and curvature from LS-Toolbox
+        normal = (-1)^celltype(x,y) * [deriv(x,y,1);deriv(x,y,2)];
+        normal = normal/norm(normal);        % normal n
+        tangent = [-normal(2);normal(1)];    % tangent t
+        kappa = curvature(x,y);          % curvature
+        
+        % dynamic viscosity -> mu = mass_dens * nu
+        mu_2 = visc(celltype(x,y)) * rho_phys(celltype(x,y));
+        mu_1 = visc(celltype(x_b,y_b)) * rho_phys(celltype(x_b,y_b));
+        mu_average = (mu_2 + mu_1)*0.5;
+        
+        % ! Formula given with opposite sign in doi:10.1016/j.jcp.2008.10.032!
+        p_jump = 1/3 *(rho(x,y)*rho_phys(celltype(x,y)) - rho(x_b,y_b) * rho_phys(celltype(x_b,y_b)));
+        mu_jump = (mu_2 - mu_1);
+        
+        % Intermedia results
+        S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal'));
+        S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
+        
+        Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (lbm_g.c(:,k)'*lbm_g.c(:,k))/2) + ...
+          2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tangent'*lbm_g.c(:,k));
+        
+        % Lambda_i : S^(2)
+        Lambda_times_S_2 = trace(Lambda_i*S_2');
+        
+        % add_term2 = R_i
+        Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;
+        add_term2 = 6*lbm_g.weights(k)*Lambda_times_A;   % R_i
+        
+        lbm_g.cells_new(x_b,y_b, lbm_g.invDir(k)) = lbm_g.cells(x,y,k) + add_term1 + add_term2;
       end
     end
     
@@ -394,59 +428,62 @@ while(t_end - tNow > 100 * eps * t_end)
       lbm_g.cells_new(:,:,i) = circshift(lbm_g.cells(:,:,i), [lbm_g.c(1,i),lbm_g.c(2,i),0]);
     end
     
-    % Domain boundary handling
-    for x=1:lbm_g.nx
-      %north & South
-      lbm_g.cells_new(x  , 2,2) = lbm_g.cells_new(x,1,6);
-      lbm_g.cells_new(x  , lbm_g.ny-1,6) = lbm_g.cells_new(x,lbm_g.ny,2) + 6 * lbm_g.weights(2) * lbm_g.c(:,6)'*lbm_g.lidVel;
-      if (x<lbm_g.nx)
-        lbm_g.cells_new(x+1, 2,3) = lbm_g.cells_new(x,1,7);
-        lbm_g.cells_new(x+1, lbm_g.ny-1,5) = lbm_g.cells_new(x,lbm_g.ny,9) + 6 * lbm_g.weights(9) * lbm_g.c(:,5)'*lbm_g.lidVel;
-      end
-      if (x>1)
-        lbm_g.cells_new(x-1, 2,9) = lbm_g.cells_new(x,1,5);
-        lbm_g.cells_new(x-1, lbm_g.ny-1,7) = lbm_g.cells_new(x,lbm_g.ny,3) + 6 * lbm_g.weights(3) * lbm_g.c(:,7)'*lbm_g.lidVel;
-      end
+    % Domain boundary handling (This is POST-stream)
+    % North & South
+    if (use_periodic_y)
+      lbm_g.cells_new(1:lbm_g.nx, 2, 2) = lbm_g.cells_new(1:lbm_g.nx, lbm_g.ny, 2);
+      lbm_g.cells_new(1:lbm_g.nx, 2, 3) = lbm_g.cells_new(1:lbm_g.nx, lbm_g.ny, 3);
+      lbm_g.cells_new(1:lbm_g.nx, 2, 9) = lbm_g.cells_new(1:lbm_g.nx, lbm_g.ny, 9);
+      
+      lbm_g.cells_new(1:lbm_g.nx, lbm_g.ny-1,6) = lbm_g.cells_new(1:lbm_g.nx,1,6);
+      lbm_g.cells_new(1:lbm_g.nx, lbm_g.ny-1,5) = lbm_g.cells_new(1:lbm_g.nx,1,5);
+      lbm_g.cells_new(1:lbm_g.nx, lbm_g.ny-1,7) = lbm_g.cells_new(1:lbm_g.nx,1,7);
+      
+      %Guarantee periodicity
+      lbm_g.cells_new(1:lbm_g.nx, lbm_g.ny, :)     = lbm_g.cells_new(1:lbm_g.nx, 2, :);
+      lbm_g.cells_new(1:lbm_g.nx, 1, :)     = lbm_g.cells_new(1:lbm_g.nx, lbm_g.ny-1, :);
+    else
+      %Solid boundaries
+      lbm_g.cells_new(1:lbm_g.nx, 2, 2)    = lbm_g.cells_new(1:lbm_g.nx,1,6);
+      lbm_g.cells_new(2:lbm_g.nx, 2, 3)    = lbm_g.cells_new(1:(lbm_g.nx-1),1,7);
+      lbm_g.cells_new(1:(lbm_g.nx-1), 2, 9)= lbm_g.cells_new(2:lbm_g.nx,1,5);
+      
+      %Moving no-slip boundaries
+      lbm_g.cells_new(1:lbm_g.nx, lbm_g.ny-1, 6)    = lbm_g.cells_new(1:lbm_g.nx,lbm_g.ny,2) + 6 * lbm_g.weights(2) * lbm_g.c(:,6)'*lbm_g.lidVel;
+      lbm_g.cells_new(2:lbm_g.nx,  lbm_g.ny-1, 5)   = lbm_g.cells_new(1:(lbm_g.nx-1),lbm_g.ny,9) + 6 * lbm_g.weights(9) * lbm_g.c(:,5)'*lbm_g.lidVel;
+      lbm_g.cells_new(1:(lbm_g.nx-1), lbm_g.ny-1, 7)= lbm_g.cells_new(2:lbm_g.nx,lbm_g.ny,3) + 6 * lbm_g.weights(3) * lbm_g.c(:,7)'*lbm_g.lidVel;
     end
     
-    for y=2:lbm_g.ny-1
-      %east & west
-      if (use_solid_boundaries)
-        %solid boundaries
-        lbm_g.cells_new(lbm_g.nx-1, y ,8) = lbm_g.cells_new(lbm_g.nx,y, 4);
-        lbm_g.cells_new(lbm_g.nx-1, y-1, 7) = lbm_g.cells_new(lbm_g.nx,y, 3);
-        lbm_g.cells_new(lbm_g.nx-1, y+1, 9) = lbm_g.cells_new(lbm_g.nx,y, 5);
-        lbm_g.cells_new(2, y  ,4) = lbm_g.cells_new(1,y, 8);
-        lbm_g.cells_new(2, y-1,5) = lbm_g.cells_new(1,y, 9);
-        lbm_g.cells_new(2, y+1,3) = lbm_g.cells_new(1,y, 7);
-      else
-        %periodic boundaries
-        lbm_g.cells_new(2, y, 4)     = lbm_g.cells_new(lbm_g.nx,y, 4);
-        lbm_g.cells_new(lbm_g.nx-1, y,8) = lbm_g.cells_new(1,y,8);
-        if (y>2)
-          lbm_g.cells_new(2, y, 3)     = lbm_g.cells_new(lbm_g.nx,y, 3);
-          lbm_g.cells_new(lbm_g.nx-1, y,9) = lbm_g.cells_new(1,y,9);
-        end
-        if (y<lbm_g.ny-1)
-          lbm_g.cells_new(2, y,5)     = lbm_g.cells_new(lbm_g.nx,y, 5);
-          lbm_g.cells_new(lbm_g.nx-1, y,7) = lbm_g.cells_new(1,y,7);
-        end
-      end
-    end
-    
-    if (~use_solid_boundaries)
-      %Guarantee periodic boundaryies,
-      lbm_g.cells_new(lbm_g.nx, 2:lbm_g.ny-1, :)     = lbm_g.cells_new(2,2:lbm_g.ny-1, :);
-      lbm_g.cells_new(1, 2:lbm_g.ny-1, :)  = lbm_g.cells_new(lbm_g.nx-1,2:lbm_g.ny-1, :);
+    % East & west
+    if (use_periodic_x)
+      %periodic boundaries
+      lbm_g.cells_new(2, 2:(lbm_g.ny-1), 4)  = lbm_g.cells_new(lbm_g.nx, 2:(lbm_g.ny-1), 4);
+      lbm_g.cells_new(2, 3:(lbm_g.ny-1), 3)  = lbm_g.cells_new(lbm_g.nx, 3:(lbm_g.ny-1), 3);
+      lbm_g.cells_new(2, 2:(lbm_g.ny-2), 5)  = lbm_g.cells_new(lbm_g.nx, 2:(lbm_g.ny-2), 5);
+
+      lbm_g.cells_new(lbm_g.nx-1, 2:(lbm_g.ny-1), 8) = lbm_g.cells_new(1, 2:(lbm_g.ny-1), 8);
+      lbm_g.cells_new(lbm_g.nx-1, 3:(lbm_g.ny-1), 9) = lbm_g.cells_new(1, 3:(lbm_g.ny-1), 9);
+      lbm_g.cells_new(lbm_g.nx-1, 2:(lbm_g.ny-2), 7) = lbm_g.cells_new(1, 2:(lbm_g.ny-2), 7);
+      
+      %Guarantee periodicity
+      lbm_g.cells_new(lbm_g.nx, 2:(lbm_g.ny-1), :)     = lbm_g.cells_new(2,2:(lbm_g.ny-1), :);
+      lbm_g.cells_new(1, 2:(lbm_g.ny-1), :)  = lbm_g.cells_new(lbm_g.nx-1,2:(lbm_g.ny-1), :);
+    else
+      %Solid boundaries
+      lbm_g.cells_new(lbm_g.nx-1, 2:(lbm_g.ny-1) ,8) = lbm_g.cells_new(lbm_g.nx,2:(lbm_g.ny-1), 4);
+      lbm_g.cells_new(lbm_g.nx-1, 1:(lbm_g.ny-2), 7) = lbm_g.cells_new(lbm_g.nx,2:(lbm_g.ny-1), 3);
+      lbm_g.cells_new(lbm_g.nx-1, 3:lbm_g.ny, 9) = lbm_g.cells_new(lbm_g.nx,2:(lbm_g.ny-1), 5);
+      lbm_g.cells_new(2, 2:(lbm_g.ny-1)  ,4) = lbm_g.cells_new(1,2:(lbm_g.ny-1), 8);
+      lbm_g.cells_new(2, 1:(lbm_g.ny-2),5) = lbm_g.cells_new(1,2:(lbm_g.ny-1), 9);
+      lbm_g.cells_new(2, 3:lbm_g.ny,3)     = lbm_g.cells_new(1,2:(lbm_g.ny-1), 7);
     end
     
     %copy cells_new to cells, -> swap old and new buffer
     lbm_g.cells(:,:,:) = lbm_g.cells_new(:,:,:);
-    
   end
   
   %% LBM visualisation
-
+  
   % Collect data for visualisation
   rho = zeros(lbm_g.nx,lbm_g.ny);
   vel = zeros(lbm_g.nx,lbm_g.ny,2);
@@ -457,7 +494,7 @@ while(t_end - tNow > 100 * eps * t_end)
   end
   p1 = 1/3*rho_phys(1)*mean(rho(celltype==1));
   p2 = 1/3*rho_phys(2)*mean(rho(celltype==2));
-  pressure_vek = [pressure_vek, p1-p2];
+  pressure_vek = [pressure_vek, p2-p1];
   rho_sum = sum(sum(rho(2:lbm_g.nx-1,2:lbm_g.ny-1)));
   mass_vek = [mass_vek, rho_sum];
   
@@ -475,61 +512,67 @@ while(t_end - tNow > 100 * eps * t_end)
   title('Density');
   colorbar;
   
-  % Mass losses
+  % There are small mass losses. 
+  % As mentioned in the literature, these stem from the Level-Set Method
+
   % figure(3);
   % plot(mass_vek/((lbm_g.nx-2)*(lbm_g.ny-2))-ones(size(mass_vek)));
   % title(['\Delta Mass (relative) over iterations']);
   
-  % Couette-Error
-  figure(4)
-  hold off
-  plot(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2),[1:lbm_g.ny-2],'ro-');
-  hold on
- 
-  a2 = y_len/(visc(2)*rho_phys(2)/(visc(1)*rho_phys(1)) + seperator_y*(y_len - rho_phys(2)*visc(2)/(visc(1)*rho_phys(1))));
-  a1 = rho_phys(2)*visc(2)/(visc(1)*rho_phys(1)) * a2;
-  offset = a2*seperator_y*(1-visc(2)*rho_phys(2)/(visc(1)*rho_phys(1)));
- 
-  plot(...
-    lbm_g.lidVel(1) *...
-    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*floor((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
-    (a1 * ([lbm_g.dx*ceil(seperator_y/lbm_g.dx+eps) : lbm_g.dx : y_len]-.5*lbm_g.dx)) + offset],...
-    [1:lbm_g.ny-2],'b-');
- 
-  err_rel = norm( abs(sqrt(vel(lbm_g.nx/2,2:lbm_g.ny-1,1).^2+vel(lbm_g.nx/2,2:lbm_g.ny-1,2).^2)-...
-    (lbm_g.lidVel(1) *...
-    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*floor((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
-    (a1 * ([lbm_g.dx*ceil(seperator_y/lbm_g.dx+eps) : lbm_g.dx : y_len]-.5*lbm_g.dx)) + offset]))...
-     /(lbm_g.lidVel(1) *...
-    [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*floor((seperator_y-eps)/lbm_g.dx)] -.5*lbm_g.dx),...
-    (a1 * ([lbm_g.dx*ceil(seperator_y/lbm_g.dx+eps) : lbm_g.dx : y_len]-.5*lbm_g.dx)) + offset]))
- 
-  err_vek = [err_vek, err_rel];
-  xlabel('Velocity [LU]');
-  ylabel('y, Cell index');
-  title('abs(velocity) at x-center column');
-  legend({'LBM','analytic'},'Location','SouthEast')
- 
-  figure(5)
-  plot(err_vek);
-  title(['(Relative) Error in L_2-Norm over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
+  if strcmp(testcase,'line')
+    % Couette-Error
+    
+    a2 = lbm_g.lidVel(1)/(seperator_y + (visc(2)*rho_phys(2)/(visc(1)*rho_phys(1)))*(y_len - seperator_y));
+    a1 = rho_phys(2)*visc(2)/(visc(1)*rho_phys(1)) * a2;
+    offset = lbm_g.lidVel(1) - a1*y_len;
+    
+    analytic_profile = [a2 * ([lbm_g.dx : lbm_g.dx :lbm_g.dx*ceil(seperator_y/lbm_g.dx)] -.5*lbm_g.dx),...
+      (a1 * ([lbm_g.dx*ceil(1+seperator_y/lbm_g.dx+eps) : lbm_g.dx : y_len]-.5*lbm_g.dx)) + offset];
+    
+    lbm_profile = sqrt(vel(round(lbm_g.nx/2),2:lbm_g.ny-1,1).^2+vel(round(lbm_g.nx/2),2:lbm_g.ny-1,2).^2);
+    
+    figure(4)
+    
+    plot(lbm_profile,1:lbm_g.ny-2,'ro-');
+    hold on
+    
+    plot(analytic_profile,1:lbm_g.ny-2,'b-');
+    
+    err_rel = norm((lbm_profile - analytic_profile)/analytic_profile)
+    err_vek = [err_vek, err_rel];
+    
+    xlabel('Velocity [LU]');
+    ylabel('y, Cell index');
+    title('abs(velocity) at x-center column');
+    legend({'LBM','analytic'},'Location','SouthEast')
+    hold off
+    
+    figure(5)
+    plot(err_vek);
+    title(['(Relative) Error in L_2-Norm over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
+  end
   
-  % Pressure Drop
- % figure(5)
- % hold off
- % plot(pressure_vek);
- % hold on
- % pressure_jump_analytic = 0;% 2*sigma/radius;
- % plot(pressure_jump_analytic*ones(size(pressure_vek)),'g:');
- % title('Pressure jump between interior and exterior of bubble');
- % %axis([0, length(pressure_vek), 0,2*pressure_jump_analytic]);
+  if (strcmp(testcase,'circle'))
+    % Pressure Drop
+    figure(4)
+    plot(pressure_vek);
+    hold on
+    pressure_jump_analytic = 2*sigma/radius;
+    plot(pressure_jump_analytic*ones(size(pressure_vek)),'g:');
+    title(['Pressure drop between interior and exterior of bubble over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
+    %axis([0, length(pressure_vek), 0,2*pressure_jump_analytic]);
+    legend({'LBM','analytic'},'Location','SouthEast')
+    hold off
+    
+  end
   
   celltype_old = celltype;
-%---------------------------------------------------------------------------
-
+  %---------------------------------------------------------------------------
+  
   %% Pass LBM data to Levelset
   % "remove" ghost layers
-  schemeData.velocity = { lbm_g.dx/lbm_g.dt*vel(2:lbm_g.nx-1, 2:lbm_g.ny-1, 1); lbm_g.dx/lbm_g.dt*vel(2:lbm_g.nx-1, 2:lbm_g.ny-1, 2)};
+  schemeData.velocity = { lbm_g.dx/lbm_g.dt*vel(2:lbm_g.nx-1, 2:lbm_g.ny-1, 1); ...
+    lbm_g.dx/lbm_g.dt*vel(2:lbm_g.nx-1, 2:lbm_g.ny-1, 2)};
   data = data(2:lbm_g.nx-1, 2:lbm_g.ny-1);
   
   %% Level Set code
@@ -551,7 +594,7 @@ while(t_end - tNow > 100 * eps * t_end)
   figure(f);
   [ figure_az, figure_el ] = view;
   
-  % Delete last interface visualization 
+  % Delete previous interface visualization
   delete(h);
   
   % Create new visualization.
