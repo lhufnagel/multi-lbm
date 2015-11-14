@@ -185,15 +185,15 @@ while(t_end - tNow > 100 * eps * t_end)
   C=contourc(lsm_g.xs{2}(1,:),lsm_g.xs{1}(:,1),  data, [0 0]);
   C=C(:,2:end);
 
-  index_set = [];
-  %Find all cells, that are intersected by the interface
-  % And their 8 neighbours
-  for (i = 1:size(C,2))
-      p_x = (ceil(C(:,i)/lbm_g.dx)+1);
-      neighbours = p_x*ones(1,8)+lbm_g.c(:,2:9);
-      index_set = [index_set, p_x, neighbours];
-    end
-  index_set = unique(index_set','rows')';
+ % index_set = [];
+ % %Find all cells, that are intersected by the interface
+ % % And their 8 neighbours
+ % for (i = 1:size(C,2))
+ %     p_x = (ceil(C(:,i)/lbm_g.dx)+1);
+ %     neighbours = p_x*ones(1,8)+lbm_g.c(:,2:9);
+ %     index_set = [index_set, p_x, neighbours];
+ %   end
+ % index_set = unique(index_set','rows')';
   
   % Get curvature
   [curvature, ~] = curvatureSecond(lsm_g, data);
@@ -331,92 +331,95 @@ while(t_end - tNow > 100 * eps * t_end)
     %Copy post-collision cells to cells_new, because we use it temporarily in the following
     lbm_g.cells_new(:,:,:) = lbm_g.cells(:,:,:);
     
-    for (i = 1:size(index_set,2))
-      x=index_set(1,i);
-      y=index_set(2,i);
-      for k = 2:9
-        
-        x_b = x+lbm_g.c(1,k); % Indices of "boundary" point
-        y_b = y+lbm_g.c(2,k); % in opposite fluid
-        
-        if min(x_b,y_b) < 1 || x_b > lbm_g.nx || y_b > lbm_g.ny
-          continue
-        end
-        
-        if celltype(x,y) == celltype(x_b,y_b)
-          continue
-        end
-        
-        % Approximate q linearly: the position of interface along the LBM-Link
-        q = data(x_b, y_b)/(data(x_b, y_b) - data(x,y));
-        
-        if (x > 2 && x < lbm_g.nx-1 && y > 2 && y < lbm_g.ny-1)
-          x_2 = [lsm_g.xs{1}(x-1,y-1);lsm_g.xs{2}(x-1,y-1)];
-          x_1 = [lsm_g.xs{1}(x_b-1,y_b-1); lsm_g.xs{2}(x_b-1,y_b-1)];
+   % for (i = 1:size(index_set,2))
+   %   x=index_set(1,i);
+   %   y=index_set(2,i);
+   for x=1:lbm_g.nx
+     for y=1:lbm_g.ny
+       for k = 2:9
           
-          %Build more accurate intersection of link and contour-line. Mitchel-Library does not provide that..
-          [x_int,y_int]=intersections([x_1(1),x_2(1)],[x_1(2),x_2(2)],C(2,:),C(1,:),false);
-          if (~isempty(x_int))
-            q = norm(x_1-[x_int(1);y_int(1)])/norm(x_1-x_2);
+          x_b = x+lbm_g.c(1,k); % Indices of "boundary" point
+          y_b = y+lbm_g.c(2,k); % in opposite fluid
+          
+          if min(x_b,y_b) < 1 || x_b > lbm_g.nx || y_b > lbm_g.ny
+            continue
           end
+          
+          if celltype(x,y) == celltype(x_b,y_b)
+            continue
+          end
+          
+          % Approximate q linearly: the position of interface along the LBM-Link
+          q = data(x_b, y_b)/(data(x_b, y_b) - data(x,y));
+          
+          if (x > 2 && x < lbm_g.nx-1 && y > 2 && y < lbm_g.ny-1)
+            x_2 = [lsm_g.xs{1}(x-1,y-1);lsm_g.xs{2}(x-1,y-1)];
+            x_1 = [lsm_g.xs{1}(x_b-1,y_b-1); lsm_g.xs{2}(x_b-1,y_b-1)];
+            
+            %Build more accurate intersection of link and contour-line. Mitchel-Library does not provide that..
+            [x_int,y_int]=intersections([x_1(1),x_2(1)],[x_1(2),x_2(2)],C(2,:),C(1,:),false);
+            if (~isempty(x_int))
+              q = norm(x_1-[x_int(1);y_int(1)])/norm(x_1-x_2);
+            end
+          end
+          
+          % add_term1, First order interpolated velocity between phases to ensure continuity
+          vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x_b, y_b, 1); vel(x_b,y_b,2)];
+          add_term1 = 6*lbm_g.weights(k) * lbm_g.c(:,lbm_g.invDir(k))' * vel_int; % 6 f^*_i c_i u
+          
+          % S^(k)
+          % Subscript according to Thoemmes-Paper!
+          % 2: The point/cell under consideration
+          % 1: The point, the current intersecting link points to
+          
+          S_2 = zeros(2);  % Shear rate tensors
+          S_1 = zeros(2);
+          for l = 1:9
+            f_neq_2 = f_neq(x,y,l);
+            f_neq_1 = f_neq(x_b,y_b,l);
+            S_2 = S_2 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_2;
+            S_1 = S_1 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_1;
+          end
+          S_2 = -1.5 * lbm_g.omega(celltype(x,y)) * S_2;
+          S_1 = -1.5 * lbm_g.omega(celltype(x_b,y_b)) * S_1;
+          
+          
+          % Lambda_i, Orthogonal projector
+          Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - lbm_g.c(:,k)'*lbm_g.c(:,k)/2*eye(2);
+          
+          % Lambda_i : [S]
+          S_average = (S_2+S_1)*0.5;
+          % Normal, tangent and curvature from LS-Toolbox
+          normal = (-1)^celltype(x,y) * [deriv(x,y,1);deriv(x,y,2)];
+          normal = normal/norm(normal);        % normal n
+          tangent = [-normal(2);normal(1)];    % tangent t
+          kappa = curvature(x,y);          % curvature
+          
+          % dynamic viscosity -> mu = mass_dens * nu
+          mu_2 = visc(celltype(x,y)) * rho_phys(celltype(x,y));
+          mu_1 = visc(celltype(x_b,y_b)) * rho_phys(celltype(x_b,y_b));
+          mu_average = (mu_2 + mu_1)*0.5;
+          
+          % ! Formula given with opposite sign in doi:10.1016/j.jcp.2008.10.032!
+          p_jump = 1/3 *(rho(x,y)*rho_phys(celltype(x,y)) - rho(x_b,y_b) * rho_phys(celltype(x_b,y_b)));
+          mu_jump = (mu_2 - mu_1);
+          
+          % Intermedia results
+          S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal'));
+          S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
+          
+          Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (lbm_g.c(:,k)'*lbm_g.c(:,k))/2) + ...
+            2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tangent'*lbm_g.c(:,k));
+          
+          % Lambda_i : S^(2)
+          Lambda_times_S_2 = trace(Lambda_i*S_2');
+          
+          % add_term2 = R_i
+          Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;
+          add_term2 = 6*lbm_g.weights(k)*Lambda_times_A;   % R_i
+          
+          lbm_g.cells_new(x_b,y_b, lbm_g.invDir(k)) = lbm_g.cells(x,y,k) + add_term1 + add_term2;
         end
-        
-        % add_term1, First order interpolated velocity between phases to ensure continuity
-        vel_int = q*[vel(x,y,1) ; vel(x,y,2)] + (1-q)*[vel(x_b, y_b, 1); vel(x_b,y_b,2)];
-        add_term1 = 6*lbm_g.weights(k) * lbm_g.c(:,lbm_g.invDir(k))' * vel_int; % 6 f^*_i c_i u
-        
-        % S^(k)
-        % Subscript according to Thoemmes-Paper!
-        % 2: The point/cell under consideration
-        % 1: The point, the current intersecting link points to
-        
-        S_2 = zeros(2);  % Shear rate tensors
-        S_1 = zeros(2);
-        for l = 1:9
-          f_neq_2 = f_neq(x,y,l);
-          f_neq_1 = f_neq(x_b,y_b,l);
-          S_2 = S_2 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_2;
-          S_1 = S_1 + (lbm_g.c(:,l) * lbm_g.c(:,l)') * f_neq_1;
-        end
-        S_2 = -1.5 * lbm_g.omega(celltype(x,y)) * S_2;
-        S_1 = -1.5 * lbm_g.omega(celltype(x_b,y_b)) * S_1;
-        
-        
-        % Lambda_i, Orthogonal projector
-        Lambda_i = lbm_g.c(:,k)*lbm_g.c(:,k)' - lbm_g.c(:,k)'*lbm_g.c(:,k)/2*eye(2);
-        
-        % Lambda_i : [S]
-        S_average = (S_2+S_1)*0.5;
-        % Normal, tangent and curvature from LS-Toolbox
-        normal = (-1)^celltype(x,y) * [deriv(x,y,1);deriv(x,y,2)];
-        normal = normal/norm(normal);        % normal n
-        tangent = [-normal(2);normal(1)];    % tangent t
-        kappa = curvature(x,y);          % curvature
-        
-        % dynamic viscosity -> mu = mass_dens * nu
-        mu_2 = visc(celltype(x,y)) * rho_phys(celltype(x,y));
-        mu_1 = visc(celltype(x_b,y_b)) * rho_phys(celltype(x_b,y_b));
-        mu_average = (mu_2 + mu_1)*0.5;
-        
-        % ! Formula given with opposite sign in doi:10.1016/j.jcp.2008.10.032!
-        p_jump = 1/3 *(rho(x,y)*rho_phys(celltype(x,y)) - rho(x_b,y_b) * rho_phys(celltype(x_b,y_b)));
-        mu_jump = (mu_2 - mu_1);
-        
-        % Intermedia results
-        S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal'));
-        S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
-        
-        Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (lbm_g.c(:,k)'*lbm_g.c(:,k))/2) + ...
-          2*S_jump_n_t*(normal'*lbm_g.c(:,k))*(tangent'*lbm_g.c(:,k));
-        
-        % Lambda_i : S^(2)
-        Lambda_times_S_2 = trace(Lambda_i*S_2');
-        
-        % add_term2 = R_i
-        Lambda_times_A = (-q)*(1-q)*Lambda_times_S_jump - (q-0.5)*Lambda_times_S_2;
-        add_term2 = 6*lbm_g.weights(k)*Lambda_times_A;   % R_i
-        
-        lbm_g.cells_new(x_b,y_b, lbm_g.invDir(k)) = lbm_g.cells(x,y,k) + add_term1 + add_term2;
       end
     end
     
