@@ -189,7 +189,7 @@ $$
 $$
 The additional term $R_i$ ensures the jump conditions of the normal stress and corrects the error that is introduced by the first order accurate bounce back treatment,
 \begin{equation}
-  R_i = 6f_i^* \left(q(q-1)\Lambda_i:[S] - (q-\frac12)\Lambda_i:S(x_2) \right) \text{,}
+  R_i = 6f_i^* \left(q(q-1)\Lambda_i:[S] - (q-\frac12)\Lambda_i:S_2 \right) \text{,}
   \label{R_i}
 \end{equation}
 with
@@ -264,7 +264,7 @@ To verify the correctness of our implementation we first built a Couette flow wi
 \begin{figure}[b!]
 	\flushright
 	\hfill\includegraphics[trim = 0mm 8cm 0mm 8cm, clip, width=.8\textwidth, natwidth=595,natheight=842]{couette1.pdf}\hspace*{\fill}
-	\caption{Two fluid domains $\Omega_i$ separated by an interface.}
+  \caption{Two horizontal fluid layers $\Omega_i$ separated by an interface. The top boundary is moving horizontally, while the lower one is at rest}
 	\label{couette1}
 \end{figure}
 The Couette channel flow consists of a lower wall $y=0$ at rest and an upper wall $y=1$ that is moving tangentially with a prescribed constant velocity. At these walls no-slip boundary conditions hold. Along the $x$-direction periodic boundary conditions are prescribed. The two fluids layers are oriented such that their interface is parallel to the no-slip walls, and no external pressure gradient is applied.
@@ -281,9 +281,10 @@ Figure \ref{couette2} shows a second scenario with $5 \times 10$ cells along $x 
 \end{figure}
 We conclude from this that the implemented LBM boundary conditions successfully model viscosity jumps at the fluid interface.
 \subsection{Young-Laplace experiment for a bubble}
-The Couette-Flow is not influenced by surface tension due to the fact that the surface tension is multiplied with the curvature in Equation \ref{Lambda_iTimes_S} and the curvature is zero in the Couette-Flow. We use the Young-Laplace experiment to validate the implementation of surface tension. The pressure $p$ inside a bubble of radius $r$ is proportional to the surface tension coefficient $\sigma$ according to the Young-Laplace law,
+Our Couette flow scenario does not account for the influence of surface tension as the fluid interface is not curved. If it would get distorded, surface tension would have a stabilizing effect although. 
+Hence, we use the Young-Laplace law for the pressure drop across curved surfaces, to validate the implementation of surface tension. The pressure inside of a convex surfaces is higher than on the outside and the pressure drop $\Delta p$ of a bubble of radius $r$ is proportional to the surface tension coefficient $\sigma$ according to thefollowing relationship,
 \begin{equation}
-	p = \frac{2\sigma}{r} = 2 \sigma \kappa .
+	\Delta p = \frac{2\sigma}{r} = 2 \sigma \kappa .
 \end{equation}
 
 
