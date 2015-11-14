@@ -14,12 +14,12 @@ clear;
 
 %% Physical setup
 t_end = 50; % [s]
-x_len = 1; % [m]
+x_len = .5; % [m]
 y_len = 1; % [m]
 rho_phys(1) = 1; % [kg/m^3] % Mass-density of Fluid 1,
 rho_phys(2) = 1; % [kg/m^3] e.g. ~1000 for Water, 1.2 for Air. In [LU] Cell-density is varying around 1!
-visc(1) = 1/6;% [m^2/s] kinematic viscosity of fluid 1
-visc(2) = 5/6;% [m^2/s] kinematic viscosity of fluid 2
+visc(1) = 1;% [m^2/s] kinematic viscosity of fluid 1
+visc(2) = .2;% [m^2/s] kinematic viscosity of fluid 2
 sigma = 1.6e-5;  % [kg/s^2] surface tension between the two phases, e.g. ~ 76E-3 between water and air
 
 use_periodic_x = 1; % Use periodic boundaries on left/right domain border?
@@ -28,12 +28,12 @@ use_periodic_y = 0; % Use periodic boundaries on top/bottom domain border?
 % -> Otherwise No-Slip/Bounce-Back, optionally moving Top-boundary
 lidVel = 1; % [m/s] x-Velocity of the top Lid
 
-testcase = 'line';
+testcase = 'line'; %possible values: 'line', 'circle'
 % !!NOTE!! Initial Inteface is defined below (Line 87), once Level-Set Grid was initialized
 
 %% LBM Setup
 lbm_g=LBM_Grid;
-lbm_g.dx=min(x_len,y_len)/15; % [m]
+lbm_g.dx=min(x_len,y_len)/5; % [m]
 lbm_g.dt= lbm_g.dx^2;% [s]  %Diffusive scaling..
 
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
@@ -41,7 +41,7 @@ lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 
 lbm_it = 50; % Number of LBM-iterations until level-set update
-% This number should be choosen according to the following:
+% This number should be chosen according to the following:
 % (lbm_it * lbm_g.dt) * max(interface-velocity) < lbm_g.dx
 % Such, that the interface is not advected further than one cell per one LBM-LSM alternation
 
@@ -111,7 +111,7 @@ switch(testcase)
       disp('Warning, different densities. Analytic solution does not account for that!')
     end
     
-    seperator_y = 0.5*y_len;
+    seperator_y = 0.75*y_len;
     data = lsm_g.xs{2} - seperator_y;
   otherwise
     error('Testcase does not exist: %s', testcase);
@@ -185,9 +185,14 @@ while(t_end - tNow > 100 * eps * t_end)
   C=contourc(lsm_g.xs{2}(1,:),lsm_g.xs{1}(:,1),  data, [0 0]);
   C=C(:,2:end);
 
- % index_set = [];
  % %Find all cells, that are intersected by the interface
- % % And their 8 neighbours
+ % % And their 8 neighbours.
+ %
+ % -> Would be a huge improvement, to only iterate over those cells in LBM interface treatment.
+ % However, it fails at the Ghost layers if the interface crosses domain borders, leading to mass losses.
+ % -> Use with caution
+ % 
+ % index_set = [];
  % for (i = 1:size(C,2))
  %     p_x = (ceil(C(:,i)/lbm_g.dx)+1);
  %     neighbours = p_x*ones(1,8)+lbm_g.c(:,2:9);
