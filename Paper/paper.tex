@@ -24,7 +24,7 @@ lorenz.hufnagel@fau.de, daniel.zint@fau.de % ist das so richtig?
 \begin{keywords}
 	Lattice Boltzmann method,
 	Level set method,
-	Free surface,
+	Two-phase,
 	Multiphase
 \end{keywords}
 
@@ -83,13 +83,6 @@ Here, $S$ is the shear rate tensor $S=\frac12 \left( \nabla \vec u + \nabla {\ve
 	[q](\vec x) = \lim_{\epsilon \rightarrow 0} (q(\vec x - \epsilon \vec n) - (q(\vec x + \epsilon \vec n)) \text{ with } \vec x \in \Gamma. % I also turned this around, according to [p].
 \end{equation}
 In \cref{intro_phases} this is the jump from $\Omega_1$ to $\Omega_2$. For the other direction the sign changes.
-
-There are different approaches to solve the immiscible two-phase problem. The most spread among these approaches is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore there are free surface methods which only take one fluid in account for computation (\cite{Koerner}). They work best for big density and viscosity ratios.
-%TODO: Mehr Referenzen, siehe Mail
-
-In this publication we use a hybrid lattice Boltzmann level set method. Thereby, the interface motion is calculated by the level set method. The input data for the level set method is given by the lattice Boltzmann method, which is calculated independently for each fluid. This method has the advantage that it allows big ranges of density and viscosity ratios between the fluid phases 
-and has a high accuracy but requires only little memory %TODO das ist zu unscharf, glaube ich
-.
 
 This paper is organized as follows: Section 2 gives an introduction to the LBM and the level set method and explains the coupling of these. In section 3 we present our results and finally in section 4 we draw a conclusion.
 
