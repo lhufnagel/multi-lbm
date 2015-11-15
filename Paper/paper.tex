@@ -45,8 +45,9 @@ In this publication we use a hybrid lattice Boltzmann level set method. The moti
 
 The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids \cref{nse1,nse2}, see \cite{ferziger}. To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
 \begin{figure}[h!]
-	\flushright
-	\hfill\includegraphics[width=9cm,natwidth=1690,natheight=1174]{skizze.png}\hspace*{\fill}
+  \vspace{-2cm}
+  \centering
+  \hspace{2cm}\includegraphics[width=10cm,natwidth=1690,natheight=1174]{skizze.png}
 	\caption{Two fluid domains $\Omega_i$ separated by an interface $\Gamma$. $\vec n$ denotes the surface normal.}
 	\label{intro_phases}
 \end{figure}
@@ -163,13 +164,13 @@ To solve this equation we use the Toolbox of Ian Mitchell \cite{mitchell} for Ma
 
 \subsection{Coupling of LBM and level set method}
 The lattice Boltzmann method requires a boundary treatment at the interface which implements the macroscopic jump conditions (\ref{jumpconditions}). For the sake of simplicity, we do not write arrows for every vector, i.e., $\vec{u} \rightarrow u$. One should consider that every position, direction, and velocity is two-dimensional. 
-
-For the coupling, we use a bounce back type boundary condition that prescribes the velocity as Dirichlet value as described in \cite[p. 1146]{Thoemmes}. Consider a point $x_2 \in \Omega_2$ that is next to the phase interface, where the link $c_i$ crosses the interface, see \cref{coupling}. We set,
 \begin{figure}[h!]
 	\hfill\includegraphics[width=8cm,natwidth=437,natheight=178]{coupling.png}\hspace*{\fill}
 	\caption{Link between two points in different fluids.}
 	\label{coupling}
 \end{figure}
+
+For the coupling, we use a bounce back type boundary condition that prescribes the velocity as Dirichlet value as described in \cite[p. 1146]{Thoemmes}. Consider a point $x_2 \in \Omega_2$ that is next to the phase interface, where the link $c_i$ crosses the interface, see \cref{coupling}. We set,
 \begin{equation}
 	f_i(x_2,t+1) = f_{i*}^+(x_2,t) + 6f_i^*c_i \cdot \tilde{u} + R_i \text{.}
 \end{equation}
@@ -242,7 +243,7 @@ Finally, the complete coupling of the lattice Boltzmann and the level set method
 	\item[5.] Repeat step 3 and 4 until the end of the simulation.
 \end{itemize}
 \begin{figure}[h!]
-	\hfill\includegraphics[width=6cm,natwidth=632,natheight=562]{dataexchange.png}\hspace*{\fill}
+	\hfill\includegraphics[trim = 0mm 0cm 0mm 4cm, clip, width=6cm,natwidth=632,natheight=562]{dataexchange.png}\hspace*{\fill}
 	\caption{Data exchange between LBM and level set method.}
 	\label{dataexchange}
 \end{figure}
