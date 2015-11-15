@@ -39,22 +39,19 @@ lorenz.hufnagel@fau.de, daniel.zint@fau.de % ist das so richtig?
 In engineering the immiscible multiphase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors \cite{trygg}. Also, fingering in oil recovery is a common multiphase problem.
 
 In the following we will restrict ourselves to two fluid phases, but the procedure is also applicable for multiple phases. 
-There are different approaches to solve the immiscible two-phase problem. The most spread among these is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore, there are free surface methods which only take one fluid in account for computation \cite{Koerner,Scardovelli,Hirt}. They work best for large viscosity and density ratios.
+There are different approaches to solve the immiscible two-phase problem. The most spread among these is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore, there are free surface methods which only take one fluid into account for computation \cite{Koerner,Scardovelli,Hirt}. They work best for large viscosity and density ratios.
 
 In this publication we use a hybrid lattice Boltzmann level set method. The motion of the interface is modeled by the level set method. The input data for the level set method is given by the lattice Boltzmann method (LBM), which is applied independently for each fluid. This method has the advantage that it allows large ranges of viscosity- and density-ratios between the fluid phases, while describing a sharp interface.
 
-The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}, \cite{ferziger}). To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
-
-
-The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}, \cite{ferziger}). To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
-
+The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids \cref{nse1,nse2}, see \cite{ferziger}. To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
 \begin{figure}[h!]
 	\flushright
 	\hfill\includegraphics[width=9cm,natwidth=1690,natheight=1174]{skizze.png}\hspace*{\fill}
-	\caption{Two fluid domains $\Omega_i$ separated by an interface.}
+	\caption{Two fluid domains $\Omega_i$ separated by an interface $\Gamma$. $\vec n$ denotes the surface normal.}
 	\label{intro_phases}
 \end{figure}
 
+\vspace{1cm}
 The change of momentum within each fluid can be expressed as
 \begin{align}
   \nabla \cdot  \vec u_i &= 0 \text{  in } \Omega_i \text{,}
@@ -69,9 +66,9 @@ Here, $\vec u_i$ is the velocity, $p_i$ the pressure, $\nu_i$ the kinematic visc
 As boundary conditions and initial conditions we use,
 \begin{align}
   \vec u_i(x,t) &= 0 \text{, on } \delta\Omega_i \backslash \Gamma \text{,} \\
-  \vec u_i(x,0) &= \vec u_{ini,i}(x) \text{, in } \Omega_i \text{.}
+  \vec u_i(x,0) &= \vec u_{0,i}(x) \text{, in } \Omega_i \text{.}
 \end{align}
-At the interface $\Gamma$ we have the influence of the surface tension and a no-slip condition, i.e. continuity of the velocities between the fluid phases. Therefore, we get the jump conditions,
+At the interface $\Gamma$ we have a no-slip condition, i.e. continuity of the velocities between the fluid phases and the balance of viscous shear stress with surface tension. Therefore, we get the jump conditions,
 \begin{align}
   [\vec u] &= 0 \text{,  } \\
   [2\mu S - p \mathbf{I}] \cdot \vec n &= 2 \sigma \kappa \vec n \text{.}
@@ -86,12 +83,13 @@ In \cref{intro_phases} this is the jump from $\Omega_1$ to $\Omega_2$. For the o
 This paper is organized as follows: Section 2 gives an introduction to the LBM and the level set method and explains the coupling of these. In section 3 we present our results and finally in section 4 we draw a conclusion.
 
 \section{Numerical Methods}
-The algorithm we describe in this paper uses the LBM and the level set method. The lattice Boltzmann method covers the description of the velocity and density field for each fluid, as it can be shown to reproduce the Navier-Stokes-equations in the asymptotic limit with Chapman-Enskog expansion \cite{LBM3}. The level set method uses a velocity field to model the movement of the interface. We will shortly introduce both methods and show how they can be coupled.
+The algorithm we describe in this paper uses the Lattice Boltzmann Method (LBM) and the level set method. The LBM covers the description of the velocity and density field for each fluid, as it can be shown to reproduce the Navier-Stokes-equations in the asymptotic limit with Chapman-Enskog expansion \cite{LBM3}. The level set method uses a velocity field to model the movement of the interface. We will shortly introduce both methods and show how they can be coupled.
 
 \subsection{The Lattice Boltzmann Method}
 To solve the incompressible Navier-Stokes equations, we use the lattice Boltzmann method. This method describes the evolution of the particle density $f(\vec{x},\vec{v},t)$ of the Boltzmann equation in phase space, with $(\vec{x},\vec{v})$ as the phase space variables over time. For the LBM algorithm the geometrical domain is discretized with a cartesian grid and the velocity space with a restricted number of velocities adapted to this grid \cite{LBM1,LBM2,LBM3,LBM4}. We use the D2Q9 model in 2D, which has 9 velocity vectors on a plane grid with unit spacing including one zero velocity (\cref{lbmc_i}). 
-\begin{figure}
-	\hfill\includegraphics[width=4cm,natwidth=403,natheight=409]{LBMc_i.png}\hspace*{\fill}
+
+\begin{figure}[h]
+	\hfill\includegraphics[trim = 0mm 0cm 0mm 35mm, clip, width=4cm,natwidth=403,natheight=409]{LBMc_i.png}\hspace*{\fill}
 	\caption{The vectors of one cell in LBM.}
 	\label{lbmc_i}
 \end{figure}
@@ -167,7 +165,7 @@ To solve this equation we use the Toolbox of Ian Mitchell \cite{mitchell} for Ma
 The lattice Boltzmann method requires a boundary treatment at the interface which implements the macroscopic jump conditions (\ref{jumpconditions}). For the sake of simplicity, we do not write arrows for every vector, i.e., $\vec{u} \rightarrow u$. One should consider that every position, direction, and velocity is two-dimensional. 
 
 For the coupling, we use a bounce back type boundary condition that prescribes the velocity as Dirichlet value as described in \cite[p. 1146]{Thoemmes}. Consider a point $x_2 \in \Omega_2$ that is next to the phase interface, where the link $c_i$ crosses the interface, see \cref{coupling}. We set,
-\begin{figure}
+\begin{figure}[h!]
 	\hfill\includegraphics[width=8cm,natwidth=437,natheight=178]{coupling.png}\hspace*{\fill}
 	\caption{Link between two points in different fluids.}
 	\label{coupling}
@@ -179,7 +177,7 @@ Here, $\tilde{u}$ describes the linear interpolation of the velocity along the d
 $$
 \tilde{u} = qu(x_2,t) + (1-q)u(x_1,t) \text{.}
 $$
-The additional term $R_i$ ensures the jump conditions of the normal stress and corrects the error that is introduced by the first order accurate bounce back treatment,
+The additional term $R_i$ ensures the jump conditions of the normal stress and corrects the error that is introduced by the first order accurate bounce back treatment above,
 \begin{equation}
   R_i = 6f_i^* \left(q(q-1)\Lambda_i:[S] - (q-\frac12)\Lambda_i:S_2 \right) \text{,}
   \label{R_i}
@@ -188,7 +186,7 @@ with
 \begin{equation}
   \Lambda_i = c_i \otimes c_i - \frac12 (c_i \cdot c_i) \mathbf{I} \text{. }
 \end{equation}
-That is an orthogonal projection of the column vectors of the (symmetric) deviatoric shear rate jump tensor on the link direction. This projection is weighted with the interface distance and a compensation term for the interpolation error. This error arises, when the interface is not on the exact center between two LBM grid cells. The tensor product is $a \otimes b = ab^T$ and the double contraction $A:B = \mathrm{trace}(AB^T)$. Furthermore, we use the following first-order estimate to obtain the shear rate from the non-equilibrium parts of the distributions, see also \cite{Krueger},
+That is, an orthogonal projection of the column vectors of the (symmetric) deviatoric shear rate jump tensor on the link direction. This projection is weighted with the interface distance and a compensation term for the interpolation error. This error arises, when the interface is not on the exact center between two LBM grid cells. The tensor product is $a \otimes b = ab^T$ and the double contraction $A:B = \mathrm{trace}(AB^T)$. Furthermore, we use the following first-order estimate to obtain the shear rate from the non-equilibrium parts of the distributions, see also \cite{Krueger},
 \begin{equation}
   S_k = -\frac{3}{2\tau } \sum_{i=1}^9 c_i \otimes c_i(f_i-f_i^{eq})(t,x_k) \text{.}
 \end{equation}
@@ -221,7 +219,7 @@ Suppose we choose an inward pointing direction $c_i$ in a boundary point $x \in 
 \begin{equation}
   \tilde{\rho}(x) = 3\rho(x+c_i,t) - 3\rho(x+2c_i,t) + \rho(x+3c_i,t).
 \end{equation}
-\begin{figure}
+\begin{figure}[h]
 	\hfill\includegraphics[width=6cm,natwidth=445,natheight=305]{refillmethod.png}\hspace*{\fill}
 	\caption{Cells that are used for the refill method.}
 	\label{refill}
@@ -232,14 +230,9 @@ Figure \ref{refill} shows the cells we use for the extrapolation. In \cite{Thoem
 \end{equation}
 which yields similar results, as reported in \cite{Lallemand}.
 We can now compute the equilibrium part $f_i^{eq}(\tilde{\rho},\tilde{u})$ according to \cref{equil} and add it to the non-equilibrium part which we copy from a nearest neighbor,
-$$f_i(\vec{x},t+1) = f_i^{eq}(\tilde{\rho},\tilde{u}) + f_i^{neq}(x+c_i,t+1) \text{.}$$
+$$f_i(\vec{x},t+1) = f_i^{eq}(\tilde{\rho},\tilde{u}) + f_i^{neq}(x+c_i,t) \text{.}$$
 This completes the refill algorithm.
 
-\begin{figure}
-	\hfill\includegraphics[width=6cm,natwidth=632,natheight=562]{dataexchange.png}\hspace*{\fill}
-	\caption{Data exchange between LBM and level set method.}
-	\label{dataexchange}
-\end{figure}
 Finally, the complete coupling of the lattice Boltzmann and the level set method reads (see also \cref{dataexchange}):
 \begin{itemize}
 	\item[1.] Create the initial interface $\Gamma_0$.
@@ -248,12 +241,17 @@ Finally, the complete coupling of the lattice Boltzmann and the level set method
 	\item[4.] Pass the velocity field to the level set code and run it for the same time interval
 	\item[5.] Repeat step 3 and 4 until the end of the simulation.
 \end{itemize}
+\begin{figure}[h!]
+	\hfill\includegraphics[width=6cm,natwidth=632,natheight=562]{dataexchange.png}\hspace*{\fill}
+	\caption{Data exchange between LBM and level set method.}
+	\label{dataexchange}
+\end{figure}
 
 \section{Results and Examples}
 To verify the correctness of our implementation we first built a Couette flow with two stacked fluid layers. Secondly, we used the Young-Laplace experiment for a bubble to validate the implementation of surface tension.
 
 \subsection{Couette channel flow}
-\begin{figure}[b!]
+\begin{figure}[h!]
 	\flushright
 	\hfill\includegraphics[trim = 0mm 8cm 0mm 8cm, clip, width=.8\textwidth, natwidth=595,natheight=842]{couette1.pdf}\hspace*{\fill}
   \caption{Two horizontal fluid layers $\Omega_i$ separated by an interface. The top boundary is moving horizontally, while the lower one is at rest}
@@ -292,7 +290,7 @@ Additionally, we want to state that we were not able to attain stable results fo
 \section{Conclusion}
 We implemented a hybrid lattice Boltzmann method that uses the level set method to model the movement of the interface. The implementation was done in Matlab for a two dimensional case. We adapted the formulas given in \cite{Thoemmes} to fit in our environment. Finally, we verified our implementation with different test cases.
 
-A more vivid possible application of the algorithm we presented is shown in \cref{cavity}, which shows the transient movement of an oil drop in a lid driven cavity. It is a known problem that level set methods tend to suffer from mass losses \cite{Thoemmes}, but still a very good insight into detailed flow behavior is possible. A variety of two-phase flow scenarios is possible for simulation with the presented method.
+A more vivid possible application of the algorithm we presented is shown in \cref{cavity}, which shows the transient movement of an oil drop in a lid driven cavity. It is a known problem that level set methods tend to suffer from mass losses \cite{Thoemmes}, but still a very good insight into the detailed flow behavior is possible. Accordingly, a variety of two-phase flow scenarios is possible for simulation with the presented method.
 
 The authors want to thank Ian Mitchell for providing the toolbox for level set methods.
 \begin{figure}
