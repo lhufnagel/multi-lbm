@@ -36,13 +36,15 @@ lorenz.hufnagel@fau.de, daniel.zint@fau.de % ist das so richtig?
 %\markboth{TEX PRODUCTION}{USING SIAM'S MM \LaTeX\ MACROS}
 
 \section{Introduction}
-%Something about the two-phase problem and some other algorithms that solve it. We could do this according to the presentation-slides.
-In engineering the immiscible multiphase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors. Also, fingering in oil recovery is a common multiphase problem.
+In engineering the immiscible multiphase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors \cite{trygg}. Also, fingering in oil recovery is a common multiphase problem.
 
 In the following we will restrict ourselves to two fluid phases, but the procedure is also applicable for multiple phases. 
 There are different approaches to solve the immiscible two-phase problem. The most spread among these is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore, there are free surface methods which only take one fluid in account for computation \cite{Koerner,Scardovelli,Hirt}. They work best for large viscosity and density ratios.
 
 In this publication we use a hybrid lattice Boltzmann level set method. The motion of the interface is modeled by the level set method. The input data for the level set method is given by the lattice Boltzmann method (LBM), which is applied independently for each fluid. This method has the advantage that it allows large ranges of viscosity- and density-ratios between the fluid phases, while describing a sharp interface.
+
+The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}, \cite{ferziger}). To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
+
 
 The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}, \cite{ferziger}). To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
 
@@ -277,7 +279,7 @@ Hence, we use the Young-Laplace law for the pressure drop across curved surfaces
 	\Delta p = \frac{2\sigma}{r} = 2 \sigma \kappa .
 \end{equation}
 
-Figure \ref{laplace} shows the simulation results we obtained for a $40 \times 40$ cells grid over a $[0,1]\times[0,1]$-domain with periodic boundaries. At the center, a sphere of radius $0.25$ was placed with $\varrho_2 = 1.1$ while the exterior contained a fluid with $\varrho_1 = 1$. It is visible, how the approximated values attain the analytical solution in a oscillatory motion decaying amplitude, until both values agree. The algorithm needed 1000 LBM-iterations, where every ten iterations a call to the level-set routine was executed. Both fluids had an identical viscosity of $\nu = 1/6$.
+Figure \ref{laplace} shows the simulation results we obtained for a $40 \times 40$ cells grid over a $[0,1]\times[0,1]$-domain with periodic boundaries. At the center, a sphere of radius $0.25$ was placed with $\varrho_2 = 1.1$ while the exterior contained a fluid with $\varrho_1 = 1$. It is visible, how the approximated pressure attains the analytical solution in a oscillatory motion with decaying amplitude, until both values agree. The algorithm needed 1000 LBM-iterations, where every ten iterations a call to the level-set routine was executed. Both fluids had an identical viscosity of $\nu = 1/6$.
 \begin{figure}[t!]
 	\flushright
 	\hfill\includegraphics[trim = 0mm 7.75cm 0mm 8.06cm, clip, width=.8\textwidth, natwidth=595,natheight=842]{laplace.pdf}\hspace*{\fill}
@@ -289,9 +291,10 @@ Additionally, we want to state that we were not able to attain stable results fo
 
 \section{Conclusion}
 We implemented a hybrid lattice Boltzmann method that uses the level set method to model the movement of the interface. The implementation was done in Matlab for a two dimensional case. We adapted the formulas given in \cite{Thoemmes} to fit in our environment. Finally, we verified our implementation with different test cases.
-Possible applications for our algorithm are shown in figures TODO \& TODO, which show the transient movement of an oil drop in a lid driven cavity. %Fig TODO shows two rising and coalescing bubbles in a fluid, produced with our code.
 
-We particularly want to thank Ian Mitchell for providing the toolbox for level set methods.
+A more vivid possible application of the algorithm we presented is shown in figure TODO, which shows the transient movement of an oil drop in a lid driven cavity. %Fig TODO shows two rising and coalescing bubbles in a fluid, produced with our code.
+
+The authors want to thank Ian Mitchell for providing the toolbox for level set methods.
 
 %TODO: add some nice pictures
 
@@ -304,6 +307,8 @@ We particularly want to thank Ian Mitchell for providing the toolbox for level s
 \bibitem{ferziger} {\sc J. FERZIGER, M. PERIC.}, Computational methods for fluid dynamics. Springer Science \& Business Media, ISBN 978-3540420743 (2012).
 
 \bibitem{Adalsteinsson} {\sc D. ADALSTEINSSON, J.A. SETHIAN}, The fast construction of extension velocities in level set methods, J. Comput. Phys. 148 (2) (1999) 2–22.
+
+\bibitem{trygg} {\sc G. TRYGGVASON, R. SCARDOVELLI, S. ZALESKI}, Direct Numerical Simulations of Gas-Liquid Multiphase Flows, Cambridge University Press, ISBN 9780521782401 (2011)
 
 \bibitem{GRcg1} {\sc A.K. GUNSTENSEN, D.H. ROTHMAN, S. ZALESKI, G. ZANETTI}, Lattice Boltzmann model of immiscible fluids, Phys. Rev. A 43 (8) (1991) 4320-4327.
 
