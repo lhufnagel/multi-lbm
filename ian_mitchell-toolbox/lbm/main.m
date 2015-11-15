@@ -13,20 +13,20 @@ clear;
 % http://www.mathworks.com/matlabcentral/fileexchange/11837-fast-and-robust-curve-intersections
 
 %% Physical setup
-t_end = 50; % [s]
+t_end = 5; % [s]
 x_len = 1; % [m]
 y_len = 1; % [m]
-rho_phys(1) = 1.1; % [kg/m^3] % Mass-density of Fluid 1,
-rho_phys(2) = 1; % [kg/m^3] e.g. ~1000 for Water, 1.2 for Air. In [LU] Cell-density is varying around 1!
-visc(1) = 1/6;% [m^2/s] kinematic viscosity of fluid 1
-visc(2) = 1/6;% [m^2/s] kinematic viscosity of fluid 2
-sigma = 1e-5;  % [kg/s^2] surface tension between the two phases, e.g. ~ 76E-3 between water and air
+rho_phys(1) = 1; % [kg/m^3] % Mass-density of Fluid 1,
+rho_phys(2) = 1.01; % [kg/m^3] e.g. ~1000 for Water, 1.2 for Air. In [LU] Cell-density is varying around 1!
+visc(1) = 2/6;% [m^2/s] kinematic viscosity of fluid 1
+visc(2) = 3/6;% [m^2/s] kinematic viscosity of fluid 2
+sigma = 1e-6;  % [kg/s^2] surface tension between the two phases, e.g. ~ 76E-3 between water and air
 
-use_periodic_x = 1; % Use periodic boundaries on left/right domain border?
+use_periodic_x = 0; % Use periodic boundaries on left/right domain border?
 % -> Otherwise No-Slip/Bounce-Back
-use_periodic_y = 1; % Use periodic boundaries on top/bottom domain border?
+use_periodic_y = 0; % Use periodic boundaries on top/bottom domain border?
 % -> Otherwise No-Slip/Bounce-Back, optionally moving Top-boundary
-lidVel = 0; % [m/s] x-Velocity of the top Lid
+lidVel = 2; % [m/s] x-Velocity of the top Lid
 
 testcase = 'circle'; %possible values: 'line', 'circle'
 % !!NOTE!! Initial Inteface is defined below (Line 87), once Level-Set Grid was initialized
@@ -88,8 +88,8 @@ switch(testcase)
   case 'circle'
     % Celltype 1: Outer Fluid
     % Celltype 2: Inner Fluid
-    center = [ 0.5*x_len; .5*y_len];
-    radius = 0.25*min(x_len,y_len);
+    center = [ 0.25*x_len; .75*y_len];
+    radius = 0.125*min(x_len,y_len);
     
     data = zeros(size(lsm_g.xs{1}));
     data = data + (lsm_g.xs{1} - center(1)).^2 + (lsm_g.xs{2} - center(2)).^2;
@@ -155,9 +155,20 @@ end
 f = figure(1);
 hold off;
 
-h = visualizeLevelSet(lsm_g, data, 'contour', 0, [ 't = ' num2str(0) ]);
+
+[ C, h ] = contour(lsm_g.xs{1}, lsm_g.xs{2}, data, [0 0],'k',...
+'LineWidth', 2,'LabelSpacing', 1000);
+hcl = clabel(C,h);
+for (i=1:length(hcl))
+    set(hcl(i),'BackgroundColor',[1 1 1]);
+    set(hcl(i),'Fontsize',12);
+    set(hcl(i), 'String', 't = 0', 'Rotation', 0);
+  end
 
 hold on;
+h = []
+quiv = [];
+grid off;
 axis(lsm_g.axis);
 daspect([ 1 1 1 ]);
 
@@ -563,21 +574,21 @@ while(t_end - tNow > 100 * eps * t_end)
     title(['(Relative) Error in L_2-Norm over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
   end
   
-  if (strcmp(testcase,'circle'))
-    % Pressure Drop
-    figure(4)
-    plot(pressure_vek+(rho_phys(1)-rho_phys(2))/3); %Offset by p_0
-    hold on
-    pressure_jump_analytic = 2*sigma/radius+(rho_phys(1)-rho_phys(2))/3;
-    plot(pressure_jump_analytic*ones(size(pressure_vek)),'k--');
-    title(['\Delta P over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
-    %axis([0, length(pressure_vek), 0,2*pressure_jump_analytic]);
-    legend({'LBM','analytic'},'Location','SouthEast')
-    xlabel('10 LBM-Iterations');
-    ylabel('\Delta P');
-    hold off
-    
-  end
+ %if (strcmp(testcase,'circle'))
+ %  % Pressure Drop
+ %  figure(4)
+ %  plot(pressure_vek+(rho_phys(1)-rho_phys(2))/3); %Offset by p_0
+ %  hold on
+ %  pressure_jump_analytic = 2*sigma/radius+(rho_phys(1)-rho_phys(2))/3;
+ %  plot(pressure_jump_analytic*ones(size(pressure_vek)),'k--');
+ %  title(['\Delta P over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
+ %  %axis([0, length(pressure_vek), 0,2*pressure_jump_analytic]);
+ %  legend({'LBM','analytic'},'Location','SouthEast')
+ %  xlabel('10 LBM-Iterations');
+ %  ylabel('\Delta P');
+ %  hold off
+ %  
+ %end
   
   celltype_old = celltype;
   %---------------------------------------------------------------------------
@@ -607,11 +618,36 @@ while(t_end - tNow > 100 * eps * t_end)
   figure(f);
   [ figure_az, figure_el ] = view;
   
-  % Delete previous interface visualization
-  delete(h);
-  
   % Create new visualization.
-  h = visualizeLevelSet(lsm_g, data, 'contour', 0, [ 't = ' num2str(tNow) ]);
+  %h = visualizeLevelSet(lsm_g, data, 'contour', 0, [ 't = ' num2str(tNow) ]);
+  
+  hold on;
+  
+  % Delete previous interface visualization, except every 0.2 seconds
+  %
+  if abs((tNow-lbm_it*lbm_g.dt)/0.5 - round((tNow-lbm_it*lbm_g.dt)/0.5)) > 1e-8
+    delete(h);
+  end
+
+  [ C, h ] = contour(lsm_g.xs{1}, lsm_g.xs{2}, data, [0 0],'k',...
+  'LineWidth', 2,'LabelSpacing', 1000);
+  %'Fill', 'on');
+  hcl = clabel(C,h);
+  for (i=1:length(hcl))
+    set(hcl(i),'Fontsize',14);
+    set(hcl(i), 'String', ['t = ' num2str(tNow) ], 'Rotation', 0);
+    set(hcl(i),'BackgroundColor',[1 1 1]);
+  end
+
+  % Current(!) Vector velocity plot.
+  delete(quiv);
+  quiv = quiver(lsm_g.xs{2}, lsm_g.xs{1},vel( 2:lbm_g.nx-1 , 2:lbm_g.ny-1 ,1)',...
+    vel(2:lbm_g.nx-1 ,2:lbm_g.ny-1,2)','b');
+  % Send to background layer; make interfaces contours better visible
+  uistack(quiv,'bottom');
+
+  title([ 't = ' num2str(tNow) ]);
+
   view(figure_az, figure_el);
 end
 
