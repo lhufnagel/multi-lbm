@@ -14,33 +14,33 @@ clear;
 
 %% Physical setup
 t_end = 50; % [s]
-x_len = .5; % [m]
+x_len = 1; % [m]
 y_len = 1; % [m]
-rho_phys(1) = 1; % [kg/m^3] % Mass-density of Fluid 1,
+rho_phys(1) = 1.05; % [kg/m^3] % Mass-density of Fluid 1,
 rho_phys(2) = 1; % [kg/m^3] e.g. ~1000 for Water, 1.2 for Air. In [LU] Cell-density is varying around 1!
-visc(1) = 1;% [m^2/s] kinematic viscosity of fluid 1
-visc(2) = .2;% [m^2/s] kinematic viscosity of fluid 2
-sigma = 1.6e-5;  % [kg/s^2] surface tension between the two phases, e.g. ~ 76E-3 between water and air
+visc(1) = 1/6;% [m^2/s] kinematic viscosity of fluid 1
+visc(2) = 1/6;% [m^2/s] kinematic viscosity of fluid 2
+sigma = 1e-6;  % [kg/s^2] surface tension between the two phases, e.g. ~ 76E-3 between water and air
 
 use_periodic_x = 1; % Use periodic boundaries on left/right domain border?
 % -> Otherwise No-Slip/Bounce-Back
-use_periodic_y = 0; % Use periodic boundaries on top/bottom domain border?
+use_periodic_y = 1; % Use periodic boundaries on top/bottom domain border?
 % -> Otherwise No-Slip/Bounce-Back, optionally moving Top-boundary
-lidVel = 1; % [m/s] x-Velocity of the top Lid
+lidVel = 0; % [m/s] x-Velocity of the top Lid
 
-testcase = 'line'; %possible values: 'line', 'circle'
+testcase = 'circle'; %possible values: 'line', 'circle'
 % !!NOTE!! Initial Inteface is defined below (Line 87), once Level-Set Grid was initialized
 
 %% LBM Setup
 lbm_g=LBM_Grid;
-lbm_g.dx=min(x_len,y_len)/5; % [m]
+lbm_g.dx=min(x_len,y_len)/40; % [m]
 lbm_g.dt= lbm_g.dx^2;% [s]  %Diffusive scaling..
 
 lbm_g.lidVel = lbm_g.dt/lbm_g.dx * [lidVel; 0];
 lbm_g.omega(1) = 1/(3*visc(1)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 lbm_g.omega(2) = 1/(3*visc(2)*lbm_g.dt/lbm_g.dx^2 + 1/2);
 
-lbm_it = 50; % Number of LBM-iterations until level-set update
+lbm_it = 10; % Number of LBM-iterations until level-set update
 % This number should be chosen according to the following:
 % (lbm_it * lbm_g.dt) * max(interface-velocity) < lbm_g.dx
 % Such, that the interface is not advected further than one cell per one LBM-LSM alternation
@@ -89,7 +89,7 @@ switch(testcase)
     % Celltype 1: Outer Fluid
     % Celltype 2: Inner Fluid
     center = [ 0.5*x_len; .5*y_len];
-    radius = 0.35*min(x_len,y_len);
+    radius = 0.25*min(x_len,y_len);
     
     data = zeros(size(lsm_g.xs{1}));
     data = data + (lsm_g.xs{1} - center(1)).^2 + (lsm_g.xs{2} - center(2)).^2;
@@ -169,7 +169,7 @@ celltype_old = [celltype_old(end,:); celltype_old; celltype_old(1,:)];
 
 err_vek = [];
 mass_vek = [];
-pressure_vek =[];
+pressure_vek =[(rho_phys(2)-rho_phys(1))/3];
 
 startTime = cputime;
 
@@ -192,13 +192,13 @@ while(t_end - tNow > 100 * eps * t_end)
  % However, it fails at the Ghost layers if the interface crosses domain borders, leading to mass losses.
  % -> Use with caution
  % 
- % index_set = [];
- % for (i = 1:size(C,2))
- %     p_x = (ceil(C(:,i)/lbm_g.dx)+1);
- %     neighbours = p_x*ones(1,8)+lbm_g.c(:,2:9);
- %     index_set = [index_set, p_x, neighbours];
- %   end
- % index_set = unique(index_set','rows')';
+ %index_set = [];
+ %for (i = 1:size(C,2))
+ %    p_x = (ceil(C(:,i)/lbm_g.dx)+1);
+ %    neighbours = p_x*ones(1,8)+lbm_g.c(:,2:9);
+ %    index_set = [index_set, p_x, neighbours];
+ %  end
+ %index_set = unique(index_set','rows')';
   
   % Get curvature
   [curvature, ~] = curvatureSecond(lsm_g, data);
@@ -336,10 +336,10 @@ while(t_end - tNow > 100 * eps * t_end)
     %Copy post-collision cells to cells_new, because we use it temporarily in the following
     lbm_g.cells_new(:,:,:) = lbm_g.cells(:,:,:);
     
-   % for (i = 1:size(index_set,2))
-   %   x=index_set(1,i);
-   %   y=index_set(2,i);
-   for x=1:lbm_g.nx
+   %for (i = 1:size(index_set,2))
+   %  x=index_set(1,i);
+   %  y=index_set(2,i);
+    for x=1:lbm_g.nx
      for y=1:lbm_g.ny
        for k = 2:9
           
@@ -395,14 +395,17 @@ while(t_end - tNow > 100 * eps * t_end)
           % Lambda_i : [S]
           S_average = (S_2+S_1)*0.5;
           % Normal, tangent and curvature from LS-Toolbox
-          normal = (-1)^celltype(x,y) * [deriv(x,y,1);deriv(x,y,2)];
+
+          %normal = [deriv(x,y,1);deriv(x,y,2)];
+          normal = q*[deriv(x,y,1);deriv(x,y,2)]+(1-q)*[deriv(x_b,y_b,1);deriv(x_b,y_b,2)];
           normal = normal/norm(normal);        % normal n
           tangent = [-normal(2);normal(1)];    % tangent t
-          kappa = curvature(x,y);          % curvature
+          %kappa = curvature(x,y); % curvature
+          kappa = q*curvature(x,y)+(1-q)*curvature(x_b,y_b); % curvature
           
           % dynamic viscosity -> mu = mass_dens * nu
-          mu_2 = visc(celltype(x,y)) * rho_phys(celltype(x,y));
-          mu_1 = visc(celltype(x_b,y_b)) * rho_phys(celltype(x_b,y_b));
+          mu_2 = lbm_g.dt/lbm_g.dx^2*visc(celltype(x,y)) * rho_phys(celltype(x,y));
+          mu_1 = lbm_g.dt/lbm_g.dx^2*visc(celltype(x_b,y_b)) * rho_phys(celltype(x_b,y_b));
           mu_average = (mu_2 + mu_1)*0.5;
           
           % ! Formula given with opposite sign in doi:10.1016/j.jcp.2008.10.032!
@@ -410,7 +413,7 @@ while(t_end - tNow > 100 * eps * t_end)
           mu_jump = (mu_2 - mu_1);
           
           % Intermedia results
-          S_jump_n_n = 1/(2*mu_average) * (p_jump + 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal'));
+          S_jump_n_n = 1/(2*mu_average) * (p_jump - 2*sigma*kappa) - mu_jump/mu_average * trace(S_average * (normal*normal'));
           S_jump_n_t = -mu_jump/mu_average * trace(S_average * (normal*tangent')');
           
           Lambda_times_S_jump = S_jump_n_n * ((normal'*lbm_g.c(:,k))^2 - (lbm_g.c(:,k)'*lbm_g.c(:,k))/2) + ...
@@ -563,11 +566,11 @@ while(t_end - tNow > 100 * eps * t_end)
   if (strcmp(testcase,'circle'))
     % Pressure Drop
     figure(4)
-    plot(pressure_vek);
+    plot(pressure_vek+(rho_phys(1)-rho_phys(2))/3); %Offset by p_0
     hold on
-    pressure_jump_analytic = 2*sigma/radius;
+    pressure_jump_analytic = 2*sigma/radius+(rho_phys(1)-rho_phys(2))/3;
     plot(pressure_jump_analytic*ones(size(pressure_vek)),'g:');
-    title(['Pressure drop between interior and exterior of bubble over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
+    title(['\Delta P over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
     %axis([0, length(pressure_vek), 0,2*pressure_jump_analytic]);
     legend({'LBM','analytic'},'Location','SouthEast')
     hold off
