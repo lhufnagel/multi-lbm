@@ -292,11 +292,14 @@ Additionally, we want to state, that we were not able to attain stable results f
 \section{Conclusion}
 We implemented a hybrid lattice Boltzmann method that uses the level set method to model the movement of the interface. The implementation was done in Matlab for a two dimensional case. We adapted the formulas given in \cite{Thoemmes} to fit in our environment. Finally, we verified our implementation with different test cases.
 
-A more vivid possible application of the algorithm we presented is shown in figure TODO, which shows the transient movement of an oil drop in a lid driven cavity. %Fig TODO shows two rising and coalescing bubbles in a fluid, produced with our code.
+A more vivid possible application of the algorithm we presented is shown in \cref{cavity}, which shows the transient movement of an oil drop in a lid driven cavity. It is a known problem that level set methods tend to suffer from mass losses \cite{Thoemmes}, but ... TODO .trotzdem gut?
 
 The authors want to thank Ian Mitchell for providing the toolbox for level set methods.
-
-%TODO: add some nice pictures
+\begin{figure}
+	\hfill\includegraphics[trim = 0mm 8cm 0mm 8.0cm, clip, width=.95\textwidth, natwidth=595,natheight=842]{cavity.pdf}\hspace*{\fill}
+	\caption{The transient flow and deformation of a bubble in a lid driven cavity. The black lines show the interface at different points of time and the arrows display the velocity field.}
+	\label{cavity}
+\end{figure}
 
 \begin{thebibliography}{1}	
 
