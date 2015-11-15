@@ -40,14 +40,14 @@ lorenz.hufnagel@fau.de, daniel.zint@fau.de % ist das so richtig?
 In engineering the immiscible multiphase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors. Also, fingering in oil recovery is a common multiphase problem.
 
 In the following we will restrict ourselves to two fluid phases, but the procedure is also applicable for multiple phases. 
-There are different approaches to solve the immiscible two-phase problem. The most spread among these is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore, there are free surface methods which only take one fluid in account for computation \cite{Koerner}. They work best for large viscosity and density ratios.
-%TODO: Mehr Referenzen, siehe Mail
+There are different approaches to solve the immiscible two-phase problem. The most spread among these is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore, there are free surface methods which only take one fluid in account for computation \cite{Koerner,Scardovelli,Hirt}. They work best for large viscosity and density ratios.
 
-In this publication we use a hybrid lattice Boltzmann level set method. The motion of the interface is modelled by the level set method. The input data for the level set method is given by the lattice Boltzmann method (LBM), which is applied independently for each fluid. This method has the advantage that it allows for large ranges of viscosity- and density-ratios between the fluid phases, while describing a sharp interface.
+In this publication we use a hybrid lattice Boltzmann level set method. The motion of the interface is modeled by the level set method. The input data for the level set method is given by the lattice Boltzmann method (LBM), which is applied independently for each fluid. This method has the advantage that it allows for large ranges of viscosity- and density-ratios between the fluid phases, while describing a sharp interface.
 
-The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}, \cite{ferziger}). 
-%TODO Regina: Hier fehlen Referenzen!
-To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
+The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}, \cite{ferziger}). To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
+
+
+The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}, \cite{ferziger}). To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
 
 \begin{figure}[h!]
 	\flushright
@@ -288,11 +288,9 @@ Figure \ref{laplace} shows the simulation results we obtained for a $40 \times 4
 	\label{laplace}
 \end{figure}
 We noted that the velocity close to the interface contained erroneous components, which lead to a slight distortion of the spherical shape. We explain those fluxes as inaccuracies stemming from the used level set subroutines, according to the analysis shown in \cite{Thoemmes2}.
-Additionally, we want to state, that we were not able attain stable results for surface tension coefficients $\sigma > \mathrm{O(10^{-3})}$. Large densitiy ratios were limited to big viscosity regimes, or refined spatial resolution in our tests.
+Additionally, we want to state, that we were not able to attain stable results for surface tension coefficients $\sigma > \mathrm{O(10^{-3})}$. Large densitiy ratios were limited to big viscosity regimes, or refined spatial resolution in our tests.
 
 \section{Conclusion}
-%% Danksagung? - Ian Mitchell, Thömmes et al. ?
-%% Zusammenfassung/Wiederholung des Abstracts
 We implemented a hybrid lattice Boltzmann method that uses the level set method to model the movement of the interface. The implementation was done in Matlab for a two dimensional case. We adapted the formulas given in \cite{Thoemmes} to fit in our environment. Finally, we verified our implementation with different test cases.
 Possible applications for our algorithm are shown in figures TODO \& TODO, which show the transient movement of an oil drop in a lid driven cavity. %Fig TODO shows two rising and coalescing bubbles in a fluid, produced with our code.
 
@@ -321,6 +319,10 @@ We particularly want to thank Ian Mitchell for providing the toolbox for level s
 \bibitem{ShanChen2} {\sc X. SHAN, H. CHEN}, Simulation of nonideal gases and liquid-gas phase transition by the Lattice Boltzmann equation, Phys. Rev. E 49 (4) (1994) 2941.
 	
 \bibitem{Koerner} {\sc C. K\"ORNER, M. THIES, T. HOFMANN, N. TH\"UREY, U. R\"UDE}, Lattice Boltzmann Model for Free Surface Flow for Modeling Foaming, J. Stat. Phys. 121 (2005) 179-196.
+
+\bibitem{Scardovelli} {\sc R. SCARDOVELLI, S. ZALESKI}, Direct numerical simulation of free-surface and interfacial flow, Annu. Rev. Fluid Mech. 31 (1999) 567-603.
+
+\bibitem{Hirt} {\sc C.W. HIRT, J.P. SHANNON}, Free-surface stress conditions for incompressible-flow calculations, J. Comput. Phys. 2 (1968) 403-411
 
 \bibitem{LBM1} {\sc S. CHEN, G.D. DOOLENM}, Lattice Boltzmann method for fluid flows, Ann. Rev. Fluid Mech. 30 (1998) 329-364.
 
