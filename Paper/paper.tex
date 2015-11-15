@@ -221,7 +221,7 @@ Suppose we choose an inward pointing direction $c_i$ in a boundary point $x \in 
   \tilde{\rho}(x) = 3\rho(x+c_i,t) - 3\rho(x+2c_i,t) + \rho(x+3c_i,t).
 \end{equation}
 \begin{figure}[h]
-	\hfill\includegraphics[width=6cm,natwidth=445,natheight=305]{refillmethod.png}\hspace*{\fill}
+	\hfill\includegraphics[trim = 0mm 0cm 0mm 2cm, clip,width=7cm,natwidth=445,natheight=305]{refillmethod.png}\hspace*{\fill}
 	\caption{Cells that are used for the refill method.}
 	\label{refill}
 \end{figure}
@@ -248,6 +248,7 @@ Finally, the complete coupling of the lattice Boltzmann and the level set method
 	\label{dataexchange}
 \end{figure}
 
+\newpage
 \section{Results and Examples}
 To verify the correctness of our implementation we first built a Couette flow with two stacked fluid layers. Secondly, we used the Young-Laplace experiment for a bubble to validate the implementation of surface tension.
 
