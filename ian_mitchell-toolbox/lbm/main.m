@@ -16,11 +16,11 @@ clear;
 t_end = 50; % [s]
 x_len = 1; % [m]
 y_len = 1; % [m]
-rho_phys(1) = 1.05; % [kg/m^3] % Mass-density of Fluid 1,
+rho_phys(1) = 1.1; % [kg/m^3] % Mass-density of Fluid 1,
 rho_phys(2) = 1; % [kg/m^3] e.g. ~1000 for Water, 1.2 for Air. In [LU] Cell-density is varying around 1!
 visc(1) = 1/6;% [m^2/s] kinematic viscosity of fluid 1
 visc(2) = 1/6;% [m^2/s] kinematic viscosity of fluid 2
-sigma = 1e-6;  % [kg/s^2] surface tension between the two phases, e.g. ~ 76E-3 between water and air
+sigma = 1e-5;  % [kg/s^2] surface tension between the two phases, e.g. ~ 76E-3 between water and air
 
 use_periodic_x = 1; % Use periodic boundaries on left/right domain border?
 % -> Otherwise No-Slip/Bounce-Back
@@ -569,10 +569,12 @@ while(t_end - tNow > 100 * eps * t_end)
     plot(pressure_vek+(rho_phys(1)-rho_phys(2))/3); %Offset by p_0
     hold on
     pressure_jump_analytic = 2*sigma/radius+(rho_phys(1)-rho_phys(2))/3;
-    plot(pressure_jump_analytic*ones(size(pressure_vek)),'g:');
+    plot(pressure_jump_analytic*ones(size(pressure_vek)),'k--');
     title(['\Delta P over \Delta T (:=' num2str(lbm_it) ' LBM-Iterations each)']);
     %axis([0, length(pressure_vek), 0,2*pressure_jump_analytic]);
     legend({'LBM','analytic'},'Location','SouthEast')
+    xlabel('10 LBM-Iterations');
+    ylabel('\Delta P');
     hold off
     
   end

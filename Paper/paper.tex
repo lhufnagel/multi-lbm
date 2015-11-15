@@ -40,10 +40,10 @@ lorenz.hufnagel@fau.de, daniel.zint@fau.de % ist das so richtig?
 In engineering the immiscible multiphase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors. Also, fingering in oil recovery is a common multiphase problem.
 
 In the following we will restrict ourselves to two fluid phases, but the procedure is also applicable for multiple phases. 
-There are different approaches to solve the immiscible two-phase problem. The most spread among these is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore, there are free surface methods which only take one fluid in account for computation \cite{Koerner}. They work best for large density and viscosity ratios.
+There are different approaches to solve the immiscible two-phase problem. The most spread among these is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore, there are free surface methods which only take one fluid in account for computation \cite{Koerner}. They work best for large viscosity and density ratios.
 %TODO: Mehr Referenzen, siehe Mail
 
-In this publication we use a hybrid lattice Boltzmann level set method. The motion of the interface is modelled by the level set method. The input data for the level set method is given by the lattice Boltzmann method (LBM), which is applied independently for each fluid. This method has the advantage that it allows large ranges of viscosity- and density-ratios between the fluid phases, while describing a sharp interface.
+Gn this publication we use a hybrid lattice Boltzmann level set method. The motion of the interface is modelled by the level set method. The input data for the level set method is given by the lattice Boltzmann method (LBM), which is applied independently for each fluid. This method has the advantage that it allows for large ranges of viscosity- and density-ratios between the fluid phases, while describing a sharp interface.
 
 The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}, \cite{ferziger}). 
 %TODO Regina: Hier fehlen Referenzen!
@@ -109,8 +109,9 @@ The vectors are given by the columns of the matrix,
 The corresponding particle distributions are denoted by $f_i(\vec{x},t) = f(\vec{x},\vec{c_i},t)$. We get the density and velocity from the moments of the particle distribution functions with,
 \begin{equation}
 	\rho(\vec{x},t) = \sum_{i=1}^{9} f_i(\vec{x},t) \text{, } \quad
-	\vec{u} = \sum_{i=1}^{9} f_i(\vec{x},t)\vec{c_i} \text{.}
-\end{equation}
+	\vec{u} = \sum_{i=1}^{9} f_i(\vec{x},t)\vec{c_i} \text{,}
+\end{equation} 
+while the pressure is related to the lattice density $\rho$ as $p=\varrho * \rho/3$.
 
 The LBM algorithm alternates between a collision step and propagation step, where for the collision step we use the Bhatnagar-Gross-Krook (BGK) collision operator \cite{BGK},
 \begin{equation}
@@ -151,7 +152,7 @@ One time step in the LBM algorithm is achieved by the following sub-steps:
 	\item[3. ] Boundary treatment: $f_i(\vec{x}+\vec c_i ,t+1) = f_i(\vec{x}+\vec c_i ,t)$, if $\vec{x} \notin \Omega$
 \end{itemize}
 
-We remark that the propagation step is the only non-local operation in the LBM algorithm, as it accesses nearest neighbors. This allows highly efficient parallel implementations of the LBM.
+We remark that the propagation step is the only non-local operation in the LBM algorithm, as it accesses nearest neighbors. This allows for highly efficient parallel implementations of the LBM.
 \subsection{The Level Set Method}
 We deal with the advection of the interface between the two fluids by using the level set method. The method captures the surface that represents the interface with a continuous signed distance function, where the interface is implicitly given as the zero level set.
 
@@ -159,7 +160,7 @@ Let $\Gamma_t$ be our interface at time t. Within the level set method, $\Gamma_
 \begin{equation}
   \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0 \text{,}
 \end{equation}
-with the velocity $\vec v = \vec u(\vec x(t))$ for $\vec x(t) \in \Gamma_t$, which we obtain from the LBM.
+with the velocity $\vec v = \vec u(\vec x(t))$ for $\vec x(t) \in \Gamma_t$, which we obtain from the LBM. It is easily visible, that the normal of the surface is determined as $\vec n(x) = \frac{\nabla \varphi(x)}{\|\varphi(x)\|}$ and accordingly the curvature as the divergence of the normal $\kappa = \nabla \cdot \nabla \varphi = \Delta \varphi$.
 
 To solve this equation we use the Toolbox of Ian Mitchell \cite{mitchell} for Matlab. This toolbox takes as input the velocity field we get from the lattice Boltzmann method and computes the movement of the interface. The toolbox also provides functions to compute the normal and the curvature of the surface. We will need this information for the coupling of the methods.
 
@@ -190,7 +191,7 @@ with
 \end{equation}
 That is an orthogonal projection of the column vectors of the (symmetric) deviatoric shear rate jump tensor on the link direction. This projection is weighted with the interface distance and a compensation term for the interpolation error. This error arises, when the interface is not on the exact center between two LBM grid cells. The tensor product is $a \otimes b = ab^T$ and the double contraction $A:B = \mathrm{trace}(AB^T)$. Furthermore, we use the following first-order estimate to obtain the shear rate from the non-equilibrium parts of the distributions, see also \cite{Krueger},
 \begin{equation}
-  S(x_k) = -\frac{3}{2\tau } \sum_{i=1}^9 c_i \otimes c_i(f_i-f_i^{eq})(t,x_k) \text{.}
+  S_k = -\frac{3}{2\tau } \sum_{i=1}^9 c_i \otimes c_i(f_i-f_i^{eq})(t,x_k) \text{.}
 \end{equation}
 Now we have,
 \begin{equation}
@@ -268,27 +269,36 @@ Figure \ref{couette2} shows a second scenario with $5 \times 10$ cells along $x 
 \begin{figure}[t!]
 	\flushright
 	\hfill\includegraphics[trim = 0mm 8cm 0mm 8cm, clip, width=.8\textwidth, natwidth=595,natheight=842]{couette2.pdf}\hspace*{\fill}
-	\caption{Two fluid domains $\Omega_i$ separated by an interface.}
+	\caption{Two fluid domains $\Omega_i$ in a Coutte flow}
 	\label{couette2}
 \end{figure}
-We conclude from this that the implemented LBM boundary conditions successfully model viscosity jumps at the fluid interface.
+We conclude from this that the implemented LBM boundary conditions successfully model viscosity jumps at the fluid interface. Furthermore, we were able to use viscosity ratios greater than $100:1$ in our tests.
 \subsection{Young-Laplace experiment for a bubble}
-Our Couette flow scenario does not account for the influence of surface tension as the fluid interface is not curved. If it would get distorted, surface tension would have a stabilizing effect although. 
-Hence, we use the Young-Laplace law for the pressure drop across curved surfaces, to validate the implementation of surface tension. The pressure inside of a convex surfaces is higher than on the outside and the pressure drop $\Delta p$ of a bubble of radius $r$ is proportional to the surface tension coefficient $\sigma$ according to the following relationship,
+The Couette flow scenario does not account for the influence of surface tension as the fluid interface is not curved. If it would get distorted, surface tension would have a stabilizing effect although. 
+Hence, we use the Young-Laplace law for the pressure drop across curved surfaces, to validate the implementation of surface tension. Due to surface tension the pressure inside of convex surfaces is generally higher than on the outside and the pressure drop $\Delta p$ of a bubble of radius $r$ is proportional to the surface tension coefficient $\sigma$ according to the following relationship,
 \begin{equation}
 	\Delta p = \frac{2\sigma}{r} = 2 \sigma \kappa .
 \end{equation}
 
-
-%TODO: name the settings we used
-%TODO: add some nice pictures
+Figure \ref{laplace} shows the simulation results we obtained for a $40 \times 40$ cells grid over a $[0,1]\times[0,1]$-domain with periodic boundaries. At the center, a sphere of radius $0.25$ was placed with $\varrho_2 = 1.1$ while the exterior contained a fluid with $\varrho_1 = 1$. It is visible, how the approximated values attain the analytical solution in a oscillatory motion decaying amplitude, until both values agree. The algorithm needed 1000 LBM-iterations, where every ten iterations, a call to the level-set routine was executed. Both fluids had an identical viscosity of $\nu = 1/6$.
+\begin{figure}[t!]
+	\flushright
+	\hfill\includegraphics[trim = 0mm 7.75cm 0mm 8.06cm, clip, width=.8\textwidth, natwidth=595,natheight=842]{laplace.pdf}\hspace*{\fill}
+	\caption{The pressure drop of a spherical bubble over LBM iterations}
+	\label{laplace}
+\end{figure}
+We noted that the velocity close to the interface contained erroneous components, which lead to a slight distortion of the spherical shape. We explain those fluxes as inaccuracies stemming from the used level set subroutines, according to the analysis shown in \cite{Thoemmes2}.
+Additionally, we want to state, that we were not able attain stable results for surface tension coefficients $\sigma > \mathrm{O(10^{-3})}$. Large densitiy ratios were limited to big viscosity regimes, or refined spatial resolution in our tests.
 
 \section{Conclusion}
 %% Danksagung? - Ian Mitchell, Thömmes et al. ?
 %% Zusammenfassung/Wiederholung des Abstracts
 We implemented a hybrid lattice Boltzmann method that uses the level set method to model the movement of the interface. The implementation was done in Matlab for a two dimensional case. We adapted the formulas given in \cite{Thoemmes} to fit in our environment. Finally, we verified our implementation with different test cases.
+Possible applications for our algorithm are shown in figures TODO \& TODO, which show the transient movement of an oil drop in a lid driven cavity. %Fig TODO shows two rising and coalescing bubbles in a fluid, produced with our code.
 
 We particularly want to thank Ian Mitchell for providing the toolbox for level set methods.
+
+%TODO: add some nice pictures
 
 \begin{thebibliography}{1}	
 
