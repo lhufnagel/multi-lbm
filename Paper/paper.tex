@@ -43,11 +43,11 @@ In the following we will restrict ourselves to two fluid phases, but the procedu
 There are different approaches to solve the immiscible two-phase problem. The most spread among these is the colour gradient method of Gunstensen and Rothman \cite{GRcg1,GRcg2,GRcg3}. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of {\it interaction potentials} by Shan and Chen \cite{ShanChen1,ShanChen2}. This method actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore, there are free surface methods which only take one fluid in account for computation \cite{Koerner}. They work best for large density and viscosity ratios.
 %TODO: Mehr Referenzen, siehe Mail
 
-In this publication we use a hybrid lattice Boltzmann level set method. The motion of the interface is modelled by the level set method. The input data for the level set method is given by the lattice Boltzmann method (LBM), which is applied independently for each fluid. This method has the advantage that it allows large ranges of viscosity- and density-ratios between the fluid phases, while describing a sharp inteface.
+In this publication we use a hybrid lattice Boltzmann level set method. The motion of the interface is modelled by the level set method. The input data for the level set method is given by the lattice Boltzmann method (LBM), which is applied independently for each fluid. This method has the advantage that it allows large ranges of viscosity- and density-ratios between the fluid phases, while describing a sharp interface.
 
-The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}). 
+The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (\cref{nse1,nse2}, \cite{ferziger}). 
 %TODO Regina: Hier fehlen Referenzen!
-To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface inbetween (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
+To apply them, we distribute our domain into three parts: $\Omega_1$ and $\Omega_2$ describe the two fluids and $\Gamma = \delta\Omega_1 \cap \delta\Omega_2$ is the interface in-between (\cref{intro_phases}). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
 
 \begin{figure}[h!]
 	\flushright
@@ -155,7 +155,7 @@ We remark that the propagation step is the only non-local operation in the LBM a
 \subsection{The Level Set Method}
 We deal with the advection of the interface between the two fluids by using the level set method. The method captures the surface that represents the interface with a continuous signed distance function, where the interface is implicitly given as the zero level set.
 
-Let $\Gamma_t$ be our interface at time t. Within the level set method, $\Gamma_t$ is the zero iso-surface of the level set function $\varphi$. Thus, for $\vec x \in \Gamma_t$ we have $\varphi(\vec x,t) = 0$, in direction of the surface normal we get $\varphi > 0$, and in the other direction we get $\varphi < 0$. For this level set function we get the level set equation introduced by Osher and Sethian in \cite{OsherSethian} for the evolution of surfaces,
+Let $\Gamma_t$ be our interface at time t. Within the level set method, $\Gamma_t$ is the zero isosurface of the level set function $\varphi$. Thus, for $\vec x \in \Gamma_t$ we have $\varphi(\vec x,t) = 0$, in direction of the surface normal we get $\varphi > 0$, and in the other direction we get $\varphi < 0$. For this level set function we get the level set equation introduced by Osher and Sethian in \cite{OsherSethian} for the evolution of surfaces,
 \begin{equation}
   \frac{\partial \varphi}{\partial t} + \vec v \cdot \nabla \varphi = 0 \text{,}
 \end{equation}
@@ -208,7 +208,7 @@ With respect to the given definition of the discrete lattice velocities (\ref{di
 \begin{equation}
 	[p] \approx \frac{1}{3} (\rho(x_2,t)\varrho_2 - \rho(x_1,t)\varrho_1) \text{.}
 \end{equation}
-and thus, all variables for the boundary conditions are defined. % sagen wir hier noch, dass im Thömmes-paper ein Fehler war, der im zweiten Paper korrigiert wurde?
+and thus, all variables for the boundary conditions are defined. 
 
 A refill method is still missing. Due to the fact that the interface moves, some cells change their fluid type. We use an equilibrium/non-equilibrium refill as it is described in \cite{Caiazzo} consisting of the following four steps:
 \begin{itemize}
@@ -273,8 +273,8 @@ Figure \ref{couette2} shows a second scenario with $5 \times 10$ cells along $x 
 \end{figure}
 We conclude from this that the implemented LBM boundary conditions successfully model viscosity jumps at the fluid interface.
 \subsection{Young-Laplace experiment for a bubble}
-Our Couette flow scenario does not account for the influence of surface tension as the fluid interface is not curved. If it would get distorded, surface tension would have a stabilizing effect although. 
-Hence, we use the Young-Laplace law for the pressure drop across curved surfaces, to validate the implementation of surface tension. The pressure inside of a convex surfaces is higher than on the outside and the pressure drop $\Delta p$ of a bubble of radius $r$ is proportional to the surface tension coefficient $\sigma$ according to thefollowing relationship,
+Our Couette flow scenario does not account for the influence of surface tension as the fluid interface is not curved. If it would get distorted, surface tension would have a stabilizing effect although. 
+Hence, we use the Young-Laplace law for the pressure drop across curved surfaces, to validate the implementation of surface tension. The pressure inside of a convex surfaces is higher than on the outside and the pressure drop $\Delta p$ of a bubble of radius $r$ is proportional to the surface tension coefficient $\sigma$ according to the following relationship,
 \begin{equation}
 	\Delta p = \frac{2\sigma}{r} = 2 \sigma \kappa .
 \end{equation}
@@ -296,6 +296,8 @@ We particularly want to thank Ian Mitchell for providing the toolbox for level s
 
 \bibitem{Thoemmes2} {\sc J. BECKER, M. JUNK, D. KEHRWALD, G. TH\"OMMES, Z. YANG}, A combined lattice BGK/level set method for immiscible two-phase flows, Computers and Mathematics with Applications, 58(5):950–964, 2009.
 
+\bibitem{ferziger} {\sc J. FERZIGER, M. PERIC.}, Computational methods for fluid dynamics. Springer Science \& Business Media, ISBN 978-3540420743 (2012).
+
 \bibitem{Adalsteinsson} {\sc D. ADALSTEINSSON, J.A. SETHIAN}, The fast construction of extension velocities in level set methods, J. Comput. Phys. 148 (2) (1999) 2–22.
 
 \bibitem{GRcg1} {\sc A.K. GUNSTENSEN, D.H. ROTHMAN, S. ZALESKI, G. ZANETTI}, Lattice Boltzmann model of immiscible fluids, Phys. Rev. A 43 (8) (1991) 4320-4327.
@@ -316,7 +318,7 @@ We particularly want to thank Ian Mitchell for providing the toolbox for level s
 
 \bibitem{LBM3} {\sc S. SUCCI}, The Lattice Boltzmann Equation for Fluid Dynamics and Beyond, Clarendon Press, Oxford, ISBN 978-0-19-850398-9 (2001).
 
-\bibitem{LBM4} {\sc D.A. WOLF-GLADOW}, Lattice-Gas Cellular Automata and Lattice Boltzmann Models, An Introduction, Springer, 2000.
+\bibitem{LBM4} {\sc D.A. WOLF-GLADOW}, Lattice-Gas Cellular Automata and Lattice Boltzmann Models, An Introduction, Springer, (2000).
 
 \bibitem{BGK} {\sc P. BHATNAGAR, E. GROSS, M. KROOK}, A model for collision processes in gases: 1. Small amplitude processes in charged and neutral one-component systems, Phys. Rev. 94 (1954) 511.
 
