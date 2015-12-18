@@ -31,7 +31,37 @@ In our project we used a coupled lattice Boltzmann level set method. The motion 
 
 <h3>Development overview</h3>
 <p>
-numerical methods..
+The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (eqs. (1.1) and (1.2), see [3]). To apply them, we distribute our domain into three parts: &Omega;<sub>1</sub> and &Omega;<sub>2</sub> describe the two fluids and &Gamma; is the interface in-between (Fig. 1). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
+</p>
+<p>
+Insert here eqs. (1.1) and (1.2)
+</p>
+<p>
+Here, u<sub>i</sub> is the velocity, p<sub>i</sub> the pressure, &nu;<sub>i</sub> the kinematic viscosity and &rho;<sub>i</sub> the mass density.
+As boundary conditions and initial conditions we use,
+</p>
+<p>
+Insert here eqs. (1.3) and (1.4)
+</p>
+<p>
+At the interface &Gamma; we have a no-slip condition, i.e. continuity of the velocities between the fluid phases and the balance of viscous shear stress with surface tension. Therefore, we get the jump conditions,
+</p>
+<p>
+Insert here eqs. (1.5) and (1.6)
+</p>
+
+
+<h4>LBM</h4>
+<p>
+To calculate the velocity within the fluids we use the LBM...
+</p>
+<h4>Level Set Method</h4>
+<p>
+The movement of the surface can be computed with the level set method...
+</p>
+<h4>Coupling of LBM and Level Set Method</h4>
+<p>
+new boundary condition...
 </p>
 
 <center>
@@ -66,4 +96,9 @@ J. Comput. Phys. 228 (2009), 1139-1156.
 C. K&ouml;rner, M. Thies, T. Hofmann, N.Thurey, U. R&uuml;de,
 <i>Lattice Boltzmann Model for Free Surface Flow for Modeling Foaming,</i> 
 J. Stat. Phys. 121 (2005) 179-196.
+<br />
+[3]
+J. FERZIGER, M. PERIC., 
+<i>Computational methods for fluid dynamics. Springer Science & Business Media,</i>
+ISBN 978-3540420743 (2012).
 </p>
