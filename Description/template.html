@@ -63,14 +63,27 @@ Moreover, a refill method is required to estimate the unknown PDFs of the LBM ce
 
 <h3>Results</h3>
 <p>
-..MATLAB-code, LSM-library, couette flow,
+The algorithm was implemented in MATLAB-code where a <a href="http://www.cs.ubc.ca/~mitchell/ToolboxLS/">level set library</a> was used. <br />
+To assess the physical correctness we used a couette flow scenario. Here, two layers of fluids are stacked upon another and a tangential velocity is induced at the top. The bottom of the domain was at rest and periodic boundaries were applied in horizontal direction. For this scenario an analytic solution to the Navier-Stokes equations is known. The velocity profile will have a kink at the phase interface corresponding to the ratio of the dynamic viscosites of the two fluid phases. See figure 3 for the comparison of numerical and analytic results.
+</p>
+<center>
+	<img src="couette_flow.png" width="640">
+</center>
+<p align=center>
+	<I>Figure 3: The analytical and numerical velocity profile of two fluids in a couette flow. The upper layer had a viscosity of 0.5, the lower one a viscosity of 10</I>
+</p>
+<p>
+A relative error in the order of O(10<sup>-4</sup>) was achieved after 2000 LBM iterations for this setup and various other viscosity ratios and interface positions were verified successfully.
+</p>
+<p>
+Furthermore, we used a spherical bubble of one fluid phase immersed in the other one. For this scenario the pressure drop along the bubble surface due to surface tension is known. We were also able to successfully verify our simulations with this setup.
 </p>
 
 <center>
 	<img src="transient_drop_cavity.png" width="640">
 </center>
 <p align=center>
-	<I>Figure 3: The transient deformation of a drop inside a lid driven cavity flow</I>
+	<I>Figure 4: The transient deformation of a drop inside a lid driven cavity flow</I>
 </p>
 
 <h3>References</h3>
