@@ -29,54 +29,41 @@ In our project we used a coupled lattice Boltzmann level set method. The motion 
 	<I>Figure 1: The mathematical description of the two fluid domains</I>
 </p>
 
-<h3>Development overview</h3>
+<h3>Methods</h3>
+<h4>Macroscopic laws</h4>
 <p>
-The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (eqs. (1.1) and (1.2), see [3]). To apply them, we distribute our domain into three parts: &Omega;<sub>1</sub> and &Omega;<sub>2</sub> describe the two fluids and &Gamma; is the interface in-between (Fig. 1). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
+The incompressible two-phase flow problem can be described mathematically with the Navier-Stokes equations for two incompressible fluids (eqs. (1.1) and (1.2), see [3]). To apply them, we distribute our domain into three parts: &Omega;<sub>1</sub> and &Omega;<sub>2</sub> describe the two fluids and &Gamma; is the interface in-between (Fig. 1). The material properties in each fluid are constant and the interface is assumed to be sharp. Thus, the overall material properties are discontinuous and the fluids will not mix.
 </p>
 <p>
-Insert here eqs. (1.1) and (1.2)
+	<img src="eqs_1.png" width="640">
 </p>
 <p>
 Here, u<sub>i</sub> is the velocity, p<sub>i</sub> the pressure, &nu;<sub>i</sub> the kinematic viscosity and &rho;<sub>i</sub> the mass density.
 As boundary conditions and initial conditions we use,
 </p>
 <p>
-Insert here eqs. (1.3) and (1.4)
+	<img src="eqs_2.png" width="600">
 </p>
 <p>
 At the interface &Gamma; we have a no-slip condition, i.e. continuity of the velocities between the fluid phases and the balance of viscous shear stress with surface tension. Therefore, we get the jump conditions,
 </p>
 <p>
-Insert here eqs. (1.5) and (1.6)
+	<img src="eqs_3.png" width="580">
 </p>
 
-
-<h4>LBM</h4>
+<h4>Numerical methods</h4>
 <p>
-To calculate the velocity within the fluids we use the LBM...
-</p>
-<h4>Level Set Method</h4>
-<p>
-The movement of the surface can be computed with the level set method...
-</p>
-<h4>Coupling of LBM and Level Set Method</h4>
-<p>
-new boundary condition...
+The Navier-Stokes equations are solved with a lattice Boltzmann method. A detailed introduction into the LBM by Succi can be found in [4]. The position of the phase interface is tracked with a level set method, see e.g. [5] for a general introduction.
 </p>
 
-<center>
-	<img src="uml_example.png" width="640">
-</center>
-<p align=center>
-	<I>Figure 2: An example of the UML diagram of a single module (class), as used in the software design development</I>
+<p>
+To ensure the macroscopic jump condition at the phase interface an additional boundary condition is introduced in the lattice Boltzmann method in neighbour-cells to the interface. In simplified terms this condition is a bounce-back condition that ensures the continuity of velocities, as well as the balance of shear stress w.r.t. to the interface position between the LBM cells. <br/>
+Moreover, a refill method is required to estimate the unknown PDFs of the LBM cells that changed their type from one fluid phase to the other, due to movement of the interface. Here a weighted interpolation from three interior neighbour cells is used.
 </p>
 
 <h3>Results</h3>
 <p>
-...
-<ul>
-	<li><b>MATLAB</b> code</li>
-</ul>
+..MATLAB-code, LSM-library, couette flow,
 </p>
 
 <center>
@@ -101,4 +88,12 @@ J. Stat. Phys. 121 (2005) 179-196.
 J. FERZIGER, M. PERIC., 
 <i>Computational methods for fluid dynamics. Springer Science & Business Media,</i>
 ISBN 978-3540420743 (2012).
+<br />
+[4] S. SUCCI, 
+<i>The Lattice Boltzmann Equation for Fluid Dynamics and Beyond,</i> 
+Clarendon Press, Oxford, ISBN 978-0-19-850398-9 (2001).
+</br>
+[5] S. OSHER, J. SETHIAN, 
+<i>Fronts propagating with curvature-dependent speed: algorithms based on Hamlton-Jacobi formulations,</i>
+J. Comput. Phys. 79 (1988) 12-49.
 </p>
