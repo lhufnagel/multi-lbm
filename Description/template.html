@@ -13,7 +13,7 @@ We implemented a lattice Boltzmann method for immiscible multiphase flow simulat
 
 <h3>Motivation</h3>
 <p>
-In engineering the immiscible multiphase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors. Also, fingering in oil recovery is a common multiphase problem.
+In engineering the immiscible multiphase flow problem often needs to be considered. For example, bubble dynamics are decisive for the design of chemical reactors. Also fingering in oil recovery is a common multiphase problem.
 </p>
 <p>
 We restricted ourselves to two fluid phases, but the method is trivially extensible for multiple phases. There are different approaches to solve the immiscible two-phase problem. The most spread among these is the colour gradient method of Gunstensen and Rothman. The downside of this method is that it is only applicable for small density and viscosity differences. Another approach is the concept of interaction potentials by Shan and Chen which actually models miscible fluids and can only approximately describe the behavior of immiscible fluids. Furthermore, there are free surface methods which only take one fluid into account for computation [2]. They work best for large viscosity and density ratios.
@@ -57,14 +57,14 @@ The Navier-Stokes equations are solved with a lattice Boltzmann method. A detail
 </p>
 
 <p>
-To ensure the macroscopic jump condition at the phase interface an additional boundary condition is introduced in the lattice Boltzmann method in neighbour-cells to the interface. In simplified terms this condition is a bounce-back condition that ensures the continuity of velocities, as well as the balance of shear stress w.r.t. to the interface position between the LBM cells. <br/>
-Moreover, a refill method is required to estimate the unknown PDFs of the LBM cells that changed their type from one fluid phase to the other, due to movement of the interface. Here a weighted interpolation from three interior neighbour cells is used.
+To ensure the macroscopic jump condition at the phase interface an additional boundary condition is introduced in the lattice Boltzmann method in neighbour-cells to the interface. In simplified terms, this condition is a bounce-back condition that ensures the continuity of velocities, as well as the balance of shear stress w.r.t. to the interface position between the LBM cells. <br/>
+Moreover, a refill method is required to estimate the unknown PDFs of the LBM cells that changed their type from one fluid phase to the other, due to movement of the interface. Here, a weighted interpolation from three interior neighbour cells is used.
 </p>
 
 <h3>Results</h3>
 <p>
 The algorithm was implemented in MATLAB-code where a <a href="http://www.cs.ubc.ca/~mitchell/ToolboxLS/">level set library</a> was used. <br />
-To assess the physical correctness we used a couette flow scenario. Here, two layers of fluids are stacked upon another and a tangential velocity is induced at the top. The bottom of the domain was at rest and periodic boundaries were applied in horizontal direction. For this scenario an analytic solution to the Navier-Stokes equations is known. The velocity profile will have a kink at the phase interface corresponding to the ratio of the dynamic viscosites of the two fluid phases. See figure 3 for the comparison of numerical and analytic results.
+To assess the physical correctness, we used a couette flow scenario. Here, two layers of fluids are stacked upon another and a tangential velocity is induced at the top. The bottom of the domain was at rest and periodic boundaries were applied in horizontal direction. For this scenario an analytic solution to the Navier-Stokes equations is known. The velocity profile will have a kink at the phase interface corresponding to the ratio of the dynamic viscosites of the two fluid phases. See figure 3 for the comparison of numerical and analytic results.
 </p>
 <center>
 	<img src="couette_flow.png" width="640">
@@ -73,7 +73,7 @@ To assess the physical correctness we used a couette flow scenario. Here, two la
 	<I>Figure 3: The analytical and numerical velocity profile of two fluids in a couette flow. The upper layer had a viscosity of 0.5, the lower one a viscosity of 10</I>
 </p>
 <p>
-A relative error in the order of O(10<sup>-4</sup>) was achieved after 2000 LBM iterations for this setup and various other viscosity ratios and interface positions were verified successfully.
+A relative error in the order of O(10<sup>-4</sup>) was achieved after 2000 LBM iterations for this setup and various other viscosity ratios and interface positions were also verified successfully.
 </p>
 <p>
 Furthermore, we used a spherical bubble of one fluid phase immersed in the other one. For this scenario the pressure drop along the bubble surface due to surface tension is known. We were also able to successfully verify our simulations with this setup.
